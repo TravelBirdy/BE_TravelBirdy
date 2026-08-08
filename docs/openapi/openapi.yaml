@@ -1,0 +1,280 @@
+openapi: 3.0.3
+info:
+  title: TravelBirdy API
+  description: |
+    트래블버드 백엔드 전체 API 명세서. CLAUDE.md(기능명세서) 기준으로 도메인(3.1, 3.2, ...)을
+    순서대로 이 파일 하나에 계속 추가해나간다.
+  version: 0.1.0
+
+paths:
+  # ===== 3.1 인증 및 회원 =====
+  /api/auth/kakao/login:
+    post:
+      summary: 카카오 회원가입 및 로그인
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kakaoAccessToken]
+              properties:
+                kakaoAccessToken:
+                  type: string
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accessToken
+                  - refreshToken
+                  - accessTokenExpiresIn
+                  - refreshTokenExpiresIn
+                  - isNewUser
+                  - onboardingCompleted
+                  - userId
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  accessTokenExpiresIn:
+                    type: integer
+                    example: 1800
+                  refreshTokenExpiresIn:
+                    type: integer
+                    example: 2592000
+                  isNewUser:
+                    type: boolean
+                  onboardingCompleted:
+                    type: boolean
+                  userId:
+                    type: integer
+                  nickname:
+                    type: string
+                    nullable: true
+                  birdType:
+                    type: string
+                    nullable: true
+                    enum: [OMOKNUNI, MULCHONGSAE, HOBANSAE, DDAKSAE, DONGBAKSAE]
+                    # 오목눈이, 물총새, 호반새, 딱새, 동박새 (임시 코드명 — 팀 확정 전)
+        '400':
+          description: kakaoAccessToken 누락
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: INVALID_AUTH_REQUEST
+                message: kakaoAccessToken은 필수입니다.
+                timestamp: '2026-08-07T12:00:00Z'
+        '401':
+          description: 카카오 토큰 검증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: KAKAO_AUTHENTICATION_FAILED
+                message: 카카오 토큰 검증에 실패했습니다.
+                timestamp: '2026-08-07T12:00:00Z'
+        '403':
+          description: 정지된 계정
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: USER_NOT_ACTIVE
+                message: 정지된 계정입니다.
+                timestamp: '2026-08-07T12:00:00Z'
+        '409':
+          description: 이미 활성 Refresh Token이 존재하여 신규 로그인 차단
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ACTIVE_SESSION_ALREADY_EXISTS
+                message: 이미 로그인된 세션이 존재합니다.
+                timestamp: '2026-08-07T12:00:00Z'
+        '503':
+          description: 카카오 외부 API 장애
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: KAKAO_SERVICE_UNAVAILABLE
+                message: 카카오 서비스에 일시적으로 접근할 수 없습니다.
+                timestamp: '2026-08-07T12:00:00Z'
+
+  /api/auth/token/refresh:
+    post:
+      summary: JWT 토큰 재발급
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: 재발급 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '401':
+          description: 만료·폐기·불일치 Refresh Token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired:
+                  summary: 만료된 토큰
+                  value:
+                    code: REFRESH_TOKEN_EXPIRED
+                    message: 만료된 Refresh Token입니다.
+                    timestamp: '2026-08-07T12:00:00Z'
+                revoked:
+                  summary: 폐기된 토큰
+                  value:
+                    code: REFRESH_TOKEN_REVOKED
+                    message: 폐기된 Refresh Token입니다.
+                    timestamp: '2026-08-07T12:00:00Z'
+                invalid:
+                  summary: DB 저장값과 불일치
+                  value:
+                    code: INVALID_REFRESH_TOKEN
+                    message: 유효하지 않은 Refresh Token입니다.
+                    timestamp: '2026-08-07T12:00:00Z'
+        '403':
+          description: 정지·삭제된 사용자
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: USER_NOT_ACTIVE
+                message: 정지되었거나 삭제된 계정입니다.
+                timestamp: '2026-08-07T12:00:00Z'
+
+  /api/auth/logout:
+    post:
+      summary: 로그아웃
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '204':
+          description: 로그아웃 성공 (이미 폐기된 토큰으로 요청해도 멱등하게 204)
+        '401':
+          description: 인증 정보 없음 또는 Access Token 만료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: UNAUTHORIZED
+                message: 인증이 필요합니다.
+                timestamp: '2026-08-07T12:00:00Z'
+        '403':
+          description: 타인의 Refresh Token으로 로그아웃 시도
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: TOKEN_ACCESS_DENIED
+                message: 본인 소유의 토큰이 아닙니다.
+                timestamp: '2026-08-07T12:00:00Z'
+
+  /api/users/me:
+    delete:
+      summary: 회원 탈퇴
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reasonCode:
+                  type: string
+                  nullable: true
+                confirmationText:
+                  type: string
+                  nullable: true
+      responses:
+        '204':
+          description: 탈퇴 성공 (이미 탈퇴한 요청이어도 멱등하게 204)
+        '401':
+          description: 인증 정보 없음 또는 Access Token 만료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: UNAUTHORIZED
+                message: 인증이 필요합니다.
+                timestamp: '2026-08-07T12:00:00Z'
+
+  # ===== 3.2 프로필 (다음 작업 예정) =====
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Authorization: Bearer {accessToken} 헤더로 전달'
+  schemas:
+    TokenPair:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - accessTokenExpiresIn
+        - refreshTokenExpiresIn
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        accessTokenExpiresIn:
+          type: integer
+          example: 1800
+        refreshTokenExpiresIn:
+          type: integer
+          example: 2592000
+    ErrorResponse:
+      type: object
+      required: [code, message, timestamp]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
