@@ -14,11 +14,18 @@ servers:
   - url: http://localhost:8080
     description: 로컬 개발 서버
 
+tags:
+  - name: 3.1 인증 및 회원
+    description: 카카오 로그인, 토큰 재발급, 로그아웃, 회원 탈퇴
+  - name: 3.3 온보딩 및 파트너 새
+    description: 성향 테스트 및 파트너 새 배정
+
 paths:
   # ===== 3.1 인증 및 회원 =====
   /api/auth/kakao/login:
     post:
       summary: 카카오 회원가입 및 로그인
+      tags: [3.1 인증 및 회원]
       requestBody:
         required: true
         content:
@@ -86,6 +93,7 @@ paths:
   /api/auth/token/refresh:
     post:
       summary: JWT 토큰 재발급
+      tags: [3.1 인증 및 회원]
       requestBody:
         required: true
         content:
@@ -138,6 +146,7 @@ paths:
   /api/auth/logout:
     post:
       summary: 로그아웃
+      tags: [3.1 인증 및 회원]
       security:
         - bearerAuth: []
       requestBody:
@@ -173,6 +182,7 @@ paths:
   /api/users/me:
     delete:
       summary: 회원 탈퇴
+      tags: [3.1 인증 및 회원]
       security:
         - bearerAuth: []
       requestBody:
@@ -196,6 +206,181 @@ paths:
                 timestamp: '2026-08-07T12:00:00Z'
 
   # ===== 3.2 프로필 (다음 작업 예정) =====
+
+  # ===== 3.3 온보딩 및 파트너 새 =====
+  /api/onboarding/personality-test:
+    get:
+      summary: 성향 테스트 문항 조회
+      tags: [3.3 온보딩 및 파트너 새]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 조회 성공 (선택지 순서는 호출마다 무작위로 섞여서 반환됨)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalityTestResponse'
+        '401':
+          description: 인증 정보 없음 또는 Access Token 만료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: UNAUTHORIZED
+                message: 인증이 필요합니다.
+                timestamp: '2026-08-10T12:00:00Z'
+        '503':
+          description: 활성화된 성향 테스트가 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: PERSONALITY_TEST_UNAVAILABLE
+                message: 현재 이용 가능한 성향 테스트가 없습니다.
+                timestamp: '2026-08-10T12:00:00Z'
+
+  /api/onboarding/personality-test/submissions:
+    post:
+      summary: 성향 테스트 제출 및 파트너 새 배정
+      tags: [3.3 온보딩 및 파트너 새]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonalityTestSubmissionRequest'
+      responses:
+        '200':
+          description: 단독 최고 점수 성향이 있어 파트너 새가 바로 배정됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalityTestCompletedResponse'
+        '202':
+          description: 최고 점수 성향이 동점이라 Tie-breaker 선택이 필요함
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalityTieBreakerRequiredResponse'
+        '400':
+          description: 잘못된 제출 내용
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                incomplete:
+                  summary: 답변 수가 8개가 아님
+                  value:
+                    code: INCOMPLETE_PERSONALITY_TEST
+                    message: 모든 질문에 답변해야 합니다.
+                    timestamp: '2026-08-10T12:00:00Z'
+                duplicated:
+                  summary: 동일 질문에 중복 답변
+                  value:
+                    code: DUPLICATED_PERSONALITY_ANSWER
+                    message: 하나의 질문에는 하나의 답변만 가능합니다.
+                    timestamp: '2026-08-10T12:00:00Z'
+                invalidOption:
+                  summary: 유효하지 않은 질문 또는 선택지
+                  value:
+                    code: INVALID_PERSONALITY_OPTION
+                    message: 유효하지 않은 질문 또는 선택지입니다.
+                    timestamp: '2026-08-10T12:00:00Z'
+        '401':
+          description: 인증 정보 없음 또는 Access Token 만료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: UNAUTHORIZED
+                message: 인증이 필요합니다.
+                timestamp: '2026-08-10T12:00:00Z'
+        '409':
+          description: 이미 테스트를 완료한 사용자의 재제출
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: PERSONALITY_TEST_ALREADY_COMPLETED
+                message: 이미 완료된 성향 테스트입니다.
+                timestamp: '2026-08-10T12:00:00Z'
+
+  /api/onboarding/personality-test/submissions/tie-breaker:
+    post:
+      summary: 성향 테스트 동점 Tie-breaker 선택
+      tags: [3.3 온보딩 및 파트너 새]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonalityTieBreakerRequest'
+      responses:
+        '200':
+          description: Tie-breaker 완료, 파트너 새 배정됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalityTestCompletedResponse'
+        '400':
+          description: selectedTrait이 저장된 동점 후보 목록에 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: INVALID_TIE_BREAKER_SELECTION
+                message: 유효하지 않은 Tie-breaker 선택입니다.
+                timestamp: '2026-08-10T12:00:00Z'
+        '401':
+          description: 인증 정보 없음 또는 Access Token 만료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: UNAUTHORIZED
+                message: 인증이 필요합니다.
+                timestamp: '2026-08-10T12:00:00Z'
+        '403':
+          description: 다른 사용자의 submissionId에 접근
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: PERSONALITY_SUBMISSION_ACCESS_DENIED
+                message: 본인의 제출 건이 아닙니다.
+                timestamp: '2026-08-10T12:00:00Z'
+        '409':
+          description: 동점이 아닌 제출에 대한 Tie-breaker 요청, 또는 이미 완료됨
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notRequired:
+                  summary: 동점이 아닌데 Tie-breaker 요청
+                  value:
+                    code: TIE_BREAKER_NOT_REQUIRED
+                    message: Tie-breaker가 필요하지 않은 제출입니다.
+                    timestamp: '2026-08-10T12:00:00Z'
+                alreadyCompleted:
+                  summary: 이미 Tie-breaker가 완료됨
+                  value:
+                    code: PERSONALITY_TEST_ALREADY_COMPLETED
+                    message: 이미 완료된 성향 테스트입니다.
+                    timestamp: '2026-08-10T12:00:00Z'
 
 components:
   securitySchemes:
@@ -251,7 +436,8 @@ components:
             - $ref: '#/components/schemas/BirdType'
     BirdType:
       type: string
-      # 오목눈이, 물총새, 호반새, 딱새, 동박새 (임시 코드명 — CLAUDE.md 3.3.2 기준 아직 팀 확정 전, 확정 시 갱신 필요)
+      # 오목눈이, 물총새, 호반새, 딱새, 동박새 (파트너 새 코드명). 성향 코드와의 매핑 규칙(CLAUDE.md 6.2 bird_trait_mapping)은
+      # 기획 확정됨. 다만 그 매핑 규칙 자체는 서버 내부 로직이라 API 응답에는 노출하지 않음.
       enum: [OMOKNUNI, MULCHONGSAE, HOBANSAE, DDAKSAE, DONGBAKSAE]
     RefreshTokenRequest:
       type: object
@@ -268,6 +454,137 @@ components:
         confirmationText:
           type: string
           nullable: true
+    PersonalityTestResponse:
+      type: object
+      required: [testVersion, questions]
+      properties:
+        testVersion:
+          type: string
+          example: v1
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonalityQuestion'
+    PersonalityQuestion:
+      type: object
+      required: [questionId, text, order, options]
+      properties:
+        questionId:
+          type: integer
+          format: int64
+        text:
+          type: string
+        order:
+          type: integer
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonalityOption'
+    PersonalityOption:
+      type: object
+      required: [optionId, text, order]
+      properties:
+        optionId:
+          type: integer
+          format: int64
+        text:
+          type: string
+        order:
+          type: integer
+          description: 호출 시 셔플된 표시 순서 (1부터 재부여됨)
+    PersonalityTrait:
+      type: string
+      description: 내부 성향 코드
+      enum: [GOURMET, REST, PHOTO, ACTIVITY, CULTURE]
+    PersonalityResultStatus:
+      type: string
+      enum: [COMPLETED, TIE_BREAKER_REQUIRED]
+    PersonalityAnswerRequest:
+      type: object
+      required: [questionId, optionId]
+      properties:
+        questionId:
+          type: integer
+          format: int64
+        optionId:
+          type: integer
+          format: int64
+    PersonalityTestSubmissionRequest:
+      type: object
+      required: [testVersion, answers]
+      properties:
+        testVersion:
+          type: string
+          example: v1
+        answers:
+          type: array
+          description: 8개 질문 전체에 대한 답변 (질문당 1개씩)
+          items:
+            $ref: '#/components/schemas/PersonalityAnswerRequest'
+    PersonalityTieBreakerRequest:
+      type: object
+      required: [submissionId, selectedTrait]
+      properties:
+        submissionId:
+          type: integer
+          format: int64
+        selectedTrait:
+          $ref: '#/components/schemas/PersonalityTrait'
+    PersonalityTestCompletedResponse:
+      type: object
+      required:
+        - submissionId
+        - resultStatus
+        - onboardingCompleted
+        - birdType
+        - birdName
+        - trait
+        - description
+      properties:
+        submissionId:
+          type: integer
+          format: int64
+        resultStatus:
+          $ref: '#/components/schemas/PersonalityResultStatus'
+        onboardingCompleted:
+          type: boolean
+          example: true
+        birdType:
+          $ref: '#/components/schemas/BirdType'
+        birdName:
+          type: string
+          description: 파트너 새 한글 이름 (예 - 오목눈이)
+        trait:
+          $ref: '#/components/schemas/PersonalityTrait'
+        description:
+          type: string
+          description: 배정된 파트너 새·성향에 대한 설명 문구
+    PersonalityTieBreakerRequiredResponse:
+      type: object
+      required:
+        - submissionId
+        - resultStatus
+        - onboardingCompleted
+        - tiedTraits
+      properties:
+        submissionId:
+          type: integer
+          format: int64
+        resultStatus:
+          $ref: '#/components/schemas/PersonalityResultStatus'
+        onboardingCompleted:
+          type: boolean
+          example: false
+        birdType:
+          type: string
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/BirdType'
+        tiedTraits:
+          type: array
+          description: 최고 점수가 동점인 성향 목록
+          items:
+            $ref: '#/components/schemas/PersonalityTrait'
     TokenPair:
       type: object
       required:
