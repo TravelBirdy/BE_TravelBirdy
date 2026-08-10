@@ -24,51 +24,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [kakaoAccessToken]
-              properties:
-                kakaoAccessToken:
-                  type: string
+              $ref: '#/components/schemas/KakaoLoginRequest'
       responses:
         '200':
           description: 로그인 성공
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - accessToken
-                  - refreshToken
-                  - accessTokenExpiresIn
-                  - refreshTokenExpiresIn
-                  - isNewUser
-                  - onboardingCompleted
-                  - userId
-                properties:
-                  accessToken:
-                    type: string
-                  refreshToken:
-                    type: string
-                  accessTokenExpiresIn:
-                    type: integer
-                    example: 1800
-                  refreshTokenExpiresIn:
-                    type: integer
-                    example: 2592000
-                  isNewUser:
-                    type: boolean
-                  onboardingCompleted:
-                    type: boolean
-                  userId:
-                    type: integer
-                  nickname:
-                    type: string
-                    nullable: true
-                  birdType:
-                    type: string
-                    nullable: true
-                    enum: [OMOKNUNI, MULCHONGSAE, HOBANSAE, DDAKSAE, DONGBAKSAE]
-                    # 오목눈이, 물총새, 호반새, 딱새, 동박새 (임시 코드명 — 팀 확정 전)
+                $ref: '#/components/schemas/KakaoLoginResponse'
         '400':
           description: kakaoAccessToken 누락
           content:
@@ -128,11 +91,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [refreshToken]
-              properties:
-                refreshToken:
-                  type: string
+              $ref: '#/components/schemas/RefreshTokenRequest'
       responses:
         '200':
           description: 재발급 성공
@@ -186,11 +145,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [refreshToken]
-              properties:
-                refreshToken:
-                  type: string
+              $ref: '#/components/schemas/RefreshTokenRequest'
       responses:
         '204':
           description: 로그아웃 성공 (이미 폐기된 토큰으로 요청해도 멱등하게 204)
@@ -225,14 +180,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                reasonCode:
-                  type: string
-                  nullable: true
-                confirmationText:
-                  type: string
-                  nullable: true
+              $ref: '#/components/schemas/DeleteAccountRequest'
       responses:
         '204':
           description: 탈퇴 성공 (이미 탈퇴한 요청이어도 멱등하게 204)
@@ -257,6 +205,69 @@ components:
       bearerFormat: JWT
       description: 'Authorization: Bearer {accessToken} 헤더로 전달'
   schemas:
+    KakaoLoginRequest:
+      type: object
+      required: [kakaoAccessToken]
+      properties:
+        kakaoAccessToken:
+          type: string
+    KakaoLoginResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - accessTokenExpiresIn
+        - refreshTokenExpiresIn
+        - isNewUser
+        - onboardingCompleted
+        - userId
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        accessTokenExpiresIn:
+          type: integer
+          format: int64
+          example: 1800
+        refreshTokenExpiresIn:
+          type: integer
+          format: int64
+          example: 2592000
+        isNewUser:
+          type: boolean
+        onboardingCompleted:
+          type: boolean
+        userId:
+          type: integer
+          format: int64
+        nickname:
+          type: string
+          nullable: true
+        birdType:
+          type: string
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/BirdType'
+    BirdType:
+      type: string
+      # 오목눈이, 물총새, 호반새, 딱새, 동박새 (임시 코드명 — CLAUDE.md 3.3.2 기준 아직 팀 확정 전, 확정 시 갱신 필요)
+      enum: [OMOKNUNI, MULCHONGSAE, HOBANSAE, DDAKSAE, DONGBAKSAE]
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    DeleteAccountRequest:
+      type: object
+      properties:
+        reasonCode:
+          type: string
+          nullable: true
+        confirmationText:
+          type: string
+          nullable: true
     TokenPair:
       type: object
       required:
@@ -271,9 +282,11 @@ components:
           type: string
         accessTokenExpiresIn:
           type: integer
+          format: int64
           example: 1800
         refreshTokenExpiresIn:
           type: integer
+          format: int64
           example: 2592000
     ErrorResponse:
       type: object
