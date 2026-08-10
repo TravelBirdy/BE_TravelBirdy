@@ -463,6 +463,8 @@ components:
           example: v1
         questions:
           type: array
+          minItems: 8
+          maxItems: 8
           items:
             $ref: '#/components/schemas/PersonalityQuestion'
     PersonalityQuestion:
@@ -478,6 +480,8 @@ components:
           type: integer
         options:
           type: array
+          minItems: 5
+          maxItems: 5
           items:
             $ref: '#/components/schemas/PersonalityOption'
     PersonalityOption:
@@ -518,6 +522,8 @@ components:
           example: v1
         answers:
           type: array
+          minItems: 8
+          maxItems: 8
           description: 8개 질문 전체에 대한 답변 (질문당 1개씩)
           items:
             $ref: '#/components/schemas/PersonalityAnswerRequest'
@@ -555,7 +561,7 @@ components:
           type: string
           description: 파트너 새 한글 이름 (예 - 오목눈이)
         trait:
-          $ref: '#/components/schemas/PersonalityTrait'
+          type: string
         description:
           type: string
           description: 배정된 파트너 새·성향에 대한 설명 문구
@@ -565,6 +571,7 @@ components:
         - submissionId
         - resultStatus
         - onboardingCompleted
+        - birdType
         - tiedTraits
       properties:
         submissionId:
