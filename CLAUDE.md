@@ -263,7 +263,7 @@ com.travelbird
 - `personality_options` (id, question_id FK, trait_code, text) — trait_code: GOURMET/REST/PHOTO/ACTIVITY/CULTURE
 - `personality_submissions` (id, user_id FK, test_version, result_status, tied_traits?, created_at)
 - `personality_answers` (id, submission_id FK, question_id, option_id)
-- `bird_trait_mapping` **[추가 확정 필요]** — 5개 성향 코드와 5종 파트너 새(오목눈이·물총새·호반새·딱새·동박새) 매핑표 원본 데이터 없음, 별도 확인 필요
+- `bird_trait_mapping` — 5개 성향 코드와 5종 파트너 새 매핑표 (기획 확정, 2026-08-10): `REST`→오목눈이, `ACTIVITY`→물총새, `CULTURE`→호반새, `GOURMET`→딱새, `PHOTO`→동박새
 
 ### 6.3 이미지 업로드 (3.5)
 - `files` (id, owner_user_id, status: PENDING/UPLOADED/LINKED, object_key, content_type, size_bytes, width, height, purpose: POST/TRIP_PLACE, created_at)
@@ -401,7 +401,6 @@ com.travelbird
 
 ## 13. 전체 도메인 공통 - 추후 확정 필요 사항 모음
 
-- 성향 코드(GOURMET/REST/PHOTO/ACTIVITY/CULTURE) ↔ 파트너 새 5종 매핑표
 - 날씨 API 공급자 및 장애 시 대체 응답 정책 (홈 화면)
 - 여행 취소 API(`POST /api/trips/{tripId}/cancel`)는 문서상 [AI 제안·구현 기준]으로 표시되어 있어 최종 확정 필요
 - JWT Secret 등 시크릿 관리 방식 최종 확정 (Secrets Manager vs Parameter Store)
@@ -849,8 +848,15 @@ com.travelbird
 - Step 1: `POST /api/onboarding/personality-test/submissions`
 - Step 2: `POST /api/onboarding/personality-test/submissions/tie-breaker`
 
-**추가 확정이 필요한 데이터**
-- [추가 확정 필요] `GOURMET`, `REST`, `PHOTO`, `ACTIVITY`, `CULTURE` 각각을 오목눈이·물총새·호반새·딱새·동박새 중 어떤 `birdType` 과 연결할지에 대한 1:1 매핑표는 제공된 결정사항에 포함되어 있지 않다.
+**성향 코드 ↔ 파트너 새 매핑표 (기획 확정, 2026-08-10)**
+
+| 성향 코드 | 파트너 새 | 테마 |
+|---|---|---|
+| `REST` | 오목눈이 | 힐링/휴양 |
+| `ACTIVITY` | 물총새 | 액티비티/모험 |
+| `CULTURE` | 호반새 | 문화/예술 |
+| `GOURMET` | 딱새 | 미식/맛집 |
+| `PHOTO` | 동박새 | 감성/기록 |
 
 ### 3.4 파트너 새
 
