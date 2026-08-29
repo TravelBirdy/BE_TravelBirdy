@@ -1,0 +1,770 @@
+Project TravelBird {
+  database_type: 'MySQL'
+  Note: 'TravelBird Backend v10 contract + confirmed Backend harness decisions. MySQL 8.0+, utf8mb4.'
+}
+
+Enum user_role {
+  ROLE_USER
+  ROLE_ADMIN
+}
+
+Enum bird_type {
+  OMOKNUNI
+  MULCHONGSAE
+  HOBANSAE
+  DDAKSAE
+  DONGBAKSAE
+}
+
+Enum personality_trait {
+  GOURMET
+  REST
+  PHOTO
+  ACTIVITY
+  CULTURE
+}
+
+Enum personality_submission_status {
+  PENDING_TIE_BREAKER
+  COMPLETED
+}
+
+Enum file_purpose {
+  POST
+  TRIP_PLACE
+}
+
+Enum file_status {
+  PENDING
+  UPLOADED
+  LINKED
+}
+
+Enum place_status {
+  ACTIVE
+  CLOSED
+}
+
+Enum external_place_provider {
+  KTO_TOUR_API
+  NAVER
+}
+
+Enum place_category {
+  FOOD
+  CAFE
+  ATTRACTION
+  CULTURE_ART
+  ACTIVITY
+  NATURE
+  SHOPPING
+  ACCOMMODATION
+  OTHER
+}
+
+Enum trip_source_type {
+  MANUAL
+  AI
+}
+
+Enum visibility {
+  PUBLIC
+  MEMO_PRIVATE
+  PRIVATE
+}
+
+Enum companion_type {
+  SOLO
+  COUPLE
+  FRIENDS
+  FAMILY
+  OTHER
+}
+
+Enum travel_theme {
+  ACTIVITY
+  SNS_HOTPLACE
+  NATURE
+  ATTRACTION
+  SHOPPING
+  FOOD
+}
+
+Enum pace {
+  RELAXED
+  NORMAL
+  DENSE
+}
+
+Enum post_status {
+  DRAFT
+  PUBLISHED
+  BLOCKED
+}
+
+Enum report_reason_code {
+  SPAM
+  ABUSE
+  INAPPROPRIATE
+  OTHER
+}
+
+Enum report_status {
+  RECEIVED
+}
+
+Enum saved_route_source_type {
+  POST
+  AI_PREVIEW
+}
+
+Enum ai_request_type {
+  GENERAL
+  SAVED_PLACES
+  TRIP_WISHLIST
+}
+
+Enum backend_ai_job_status {
+  QUEUED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  EXPIRED
+}
+
+Enum preview_retention_status {
+  TEMPORARY
+  PERMANENT
+}
+
+/* =========================
+   USER / AUTH
+   ========================= */
+
+Table users {
+  user_id bigint [pk, increment]
+  email varchar [null]
+  nickname varchar(10) [null]
+  introduction varchar(100) [null]
+  status varchar [not null, note: '신규 가입은 ACTIVE. USER_NOT_ACTIVE 판정에 필요한 비활성/삭제 상태의 전체 Enum 값은 기준 문서가 고정하지 않음']
+  role user_role [not null]
+  onboarding_completed boolean [not null, default: false]
+  bird_type bird_type [null]
+}
+
+Table user_social_accounts {
+  user_id bigint [not null]
+  provider varchar [not null, note: 'MVP login provider: KAKAO']
+  provider_user_id varchar [not null]
+
+  indexes {
+    (provider, provider_user_id) [pk, name: 'pk_user_social_provider_user']
+    (user_id, provider) [unique, name: 'uk_user_social_user_provider']
+  }
+}
+
+Table refresh_tokens {
+  user_id bigint [pk]
+  token_hash varchar [not null]
+  expires_at datetime [not null]
+  revoked_at datetime [null]
+
+  Note: '사용자당 활성 Refresh Token 하나. Raw token은 저장하지 않는다.'
+}
+
+/* =========================
+   ONBOARDING
+   ========================= */
+
+Table personality_tests {
+  test_version varchar [pk]
+  active boolean [not null]
+  created_at datetime [not null]
+
+  Note: '최신 active testVersion 조회를 위해 created_at을 사용한다.'
+}
+
+Table personality_questions {
+  question_id bigint [pk, increment]
+  test_version varchar [not null]
+  question_order int [not null]
+  text text [not null]
+
+  indexes {
+    (test_version, question_order) [unique, name: 'uk_personality_question_order']
+  }
+}
+
+Table personality_options {
+  option_id bigint [pk, increment]
+  question_id bigint [not null]
+  text text [not null]
+  trait personality_trait [not null]
+
+  indexes {
+    (question_id, option_id) [unique, name: 'uk_personality_option_question']
+  }
+}
+
+Table personality_submissions {
+  submission_id bigint [pk, increment]
+  user_id bigint [not null]
+  test_version varchar [not null]
+  status personality_submission_status [not null]
+  selected_trait personality_trait [null]
+  tied_traits json [null]
+  gourmet_score int [not null]
+  rest_score int [not null]
+  photo_score int [not null]
+  activity_score int [not null]
+  culture_score int [not null]
+  created_at datetime [not null]
+  completed_at datetime [null]
+
+  indexes {
+    user_id [unique, name: 'uk_personality_submission_user']
+  }
+
+  Note: '재응시 금지. tied_traits는 동점 상태에서만 사용.'
+}
+
+Table personality_answers {
+  submission_id bigint [not null]
+  question_id bigint [not null]
+  option_id bigint [not null]
+
+  indexes {
+    (submission_id, question_id) [pk]
+  }
+}
+
+/* =========================
+   FILE
+   ========================= */
+
+Table files {
+  file_id bigint [pk, increment]
+  user_id bigint [not null]
+  file_name varchar [not null]
+  object_key varchar [not null, unique]
+  content_type varchar [not null, note: '최종 업로드는 image/webp']
+  size_bytes bigint [not null]
+  width int [not null]
+  height int [not null]
+  purpose file_purpose [not null]
+  status file_status [not null]
+  expires_at datetime [not null, note: 'Presigned URL 만료 시각']
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (user_id, status, created_at) [name: 'idx_files_cleanup_owner']
+  }
+}
+
+/* =========================
+   REGION / PLACE
+   ========================= */
+
+Table sigungu_master {
+  sigungu_code varchar(5) [pk]
+  sigungu_name varchar [not null]
+}
+
+Table places {
+  place_id bigint [pk, increment]
+  status place_status [not null]
+  name varchar [not null]
+  description text [null]
+  external_category varchar [null]
+  category place_category [not null]
+  address varchar [not null]
+  sigungu_code varchar(5) [not null]
+  latitude decimal(10,7) [not null]
+  longitude decimal(11,7) [not null]
+  image_url varchar [null]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    sigungu_code [name: 'idx_places_sigungu']
+    (sigungu_code, category, status) [name: 'idx_places_region_category_status']
+    (name, address) [name: 'idx_places_name_address']
+  }
+}
+
+Table place_external_ids {
+  place_id bigint [not null]
+  provider external_place_provider [not null]
+  external_place_id varchar [not null]
+
+  indexes {
+    (provider, external_place_id) [pk, name: 'pk_place_external_provider_id']
+    place_id [name: 'idx_place_external_place']
+  }
+
+  Note: '같은 provider+external_place_id는 하나의 canonical place만 가리킨다.'
+}
+
+Table place_category_mapping_rules {
+  rule_id bigint [pk, increment]
+  priority int [not null, unique]
+  include_keyword varchar [not null]
+  target_category place_category [not null]
+  excluded boolean [not null, default: false]
+
+  Note: 'priority ASC로 최초 일치 규칙을 사용한다.'
+}
+
+Table saved_places {
+  user_id bigint [not null]
+  place_id bigint [not null]
+  memo varchar(100) [null]
+  saved_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (user_id, place_id) [pk]
+    (user_id, saved_at) [name: 'idx_saved_places_cursor']
+  }
+}
+
+Table home_recommended_places {
+  place_id bigint [pk]
+  display_order int [not null, unique]
+
+  Note: 'MVP 공통 추천 장소 7개를 DB에서 직접 지정하기 위한 최소 관계.'
+}
+
+/* =========================
+   TRIP
+   ========================= */
+
+Table trips {
+  trip_id bigint [pk, increment]
+  user_id bigint [not null]
+  source_type trip_source_type [not null]
+  title varchar [not null]
+  summary text [null]
+  sigungu_code varchar(5) [not null]
+  start_date date [not null]
+  end_date date [not null]
+  companion_type companion_type [not null]
+  pace pace [not null]
+  visibility visibility [not null, default: 'PRIVATE']
+  cancelled_at datetime [null]
+  version bigint [not null, default: 0]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (user_id, start_date, trip_id) [name: 'idx_trips_user_start']
+    (user_id, end_date, trip_id) [name: 'idx_trips_user_end']
+    sigungu_code [name: 'idx_trips_sigungu']
+  }
+}
+
+Table trip_themes {
+  trip_id bigint [not null]
+  theme travel_theme [not null]
+
+  indexes {
+    (trip_id, theme) [pk]
+    (theme, trip_id) [name: 'idx_trip_themes_theme']
+  }
+}
+
+Table trip_hashtags {
+  trip_id bigint [not null]
+  hashtag varchar(10) [not null]
+
+  indexes {
+    (trip_id, hashtag) [pk]
+  }
+}
+
+Table trip_days {
+  trip_day_id bigint [pk, increment]
+  trip_id bigint [not null]
+  day_number int [not null]
+
+  indexes {
+    (trip_id, day_number) [unique, name: 'uk_trip_day_number']
+    (trip_id, trip_day_id) [unique, name: 'uk_trip_day_trip_pair']
+  }
+}
+
+Table trip_places {
+  trip_place_id bigint [pk, increment]
+  trip_id bigint [not null]
+  trip_day_id bigint [not null]
+  place_id bigint [not null]
+  visit_order int [not null]
+  memo varchar(100) [null]
+  reason varchar(100) [null]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (trip_id, place_id) [unique, name: 'uk_trip_place_global']
+    (trip_day_id, visit_order) [unique, name: 'uk_trip_day_visit_order']
+    (trip_id, trip_day_id) [name: 'idx_trip_place_trip_day']
+  }
+
+  Note: 'reason은 AI 기반 장소에서는 계약값, MANUAL 장소에서는 nullable.'
+}
+
+Table trip_place_images {
+  trip_place_id bigint [not null]
+  file_id bigint [not null]
+  display_order int [not null]
+
+  indexes {
+    (trip_place_id, file_id) [pk]
+    (trip_place_id, display_order) [unique, name: 'uk_trip_place_image_order']
+    file_id [unique, name: 'uk_trip_place_image_file']
+  }
+
+  Note: '장소별 최대 3장은 Service에서 검증.'
+}
+
+Table trip_wishlist_places {
+  trip_id bigint [not null]
+  place_id bigint [not null]
+  added_at datetime [not null]
+
+  indexes {
+    (trip_id, place_id) [pk]
+    (trip_id, added_at) [name: 'idx_trip_wishlist_cursor']
+  }
+}
+
+/* =========================
+   POST / COMMUNITY
+   ========================= */
+
+Table posts {
+  post_id bigint [pk, increment]
+  trip_id bigint [not null]
+  title varchar(50) [null]
+  content text [null]
+  representative_file_id bigint [null]
+  status post_status [not null]
+  visibility visibility [not null]
+  view_count bigint [not null, default: 0]
+  save_count bigint [not null, default: 0]
+  share_count bigint [not null, default: 0]
+  published_at datetime [null]
+  deleted_at datetime [null]
+  active_trip_id bigint [null, note: 'MySQL generated column: deleted_at IS NULL이면 trip_id, 아니면 NULL']
+  version bigint [not null, default: 0]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    active_trip_id [unique, name: 'uk_posts_active_trip']
+    (status, visibility, published_at, post_id) [name: 'idx_posts_community']
+    (trip_id, deleted_at) [name: 'idx_posts_trip_deleted']
+  }
+}
+
+Table post_images {
+  post_id bigint [not null]
+  file_id bigint [not null]
+  display_order int [not null]
+
+  indexes {
+    (post_id, file_id) [pk]
+    (post_id, display_order) [unique, name: 'uk_post_image_order']
+    file_id [unique, name: 'uk_post_image_file']
+  }
+
+  Note: '게시글 최대 10장은 Service에서 검증.'
+}
+
+Table post_places {
+  post_id bigint [not null]
+  trip_place_id bigint [not null]
+
+  indexes {
+    (post_id, trip_place_id) [pk]
+  }
+
+  Note: 'CreatePostRequest.placeIds를 같은 Trip의 TripPlace로 resolve하여 저장한다.'
+}
+
+Table post_hashtags {
+  post_id bigint [not null]
+  hashtag varchar(10) [not null]
+
+  indexes {
+    (post_id, hashtag) [pk]
+    (hashtag, post_id) [name: 'idx_post_hashtag_search']
+  }
+}
+
+Table post_view_histories {
+  view_history_id bigint [pk, increment]
+  post_id bigint [not null]
+  viewer_user_id bigint [not null]
+  viewed_at datetime [not null]
+
+  indexes {
+    (post_id, viewer_user_id, viewed_at) [name: 'idx_post_view_24h']
+  }
+}
+
+Table post_daily_metrics {
+  post_id bigint [not null]
+  metric_date date [not null]
+  view_count bigint [not null, default: 0]
+  save_count bigint [not null, default: 0]
+  share_count bigint [not null, default: 0]
+
+  indexes {
+    (post_id, metric_date) [pk]
+    (metric_date, post_id) [name: 'idx_post_daily_metric_date']
+  }
+
+  Note: 'WEEK/MONTH/SEASON/YEAR 인기 점수 산출용. 명세가 허용한 DB 집계 구현을 채택.'
+}
+
+Table reports {
+  report_id bigint [pk, increment]
+  reporter_user_id bigint [not null]
+  post_id bigint [not null]
+  reason_code report_reason_code [not null]
+  description varchar [null]
+  status report_status [not null]
+  created_at datetime [not null]
+
+  indexes {
+    (reporter_user_id, post_id) [unique, name: 'uk_report_user_post']
+    post_id [name: 'idx_reports_post']
+  }
+}
+
+/* =========================
+   SAVED ROUTE / SOCIAL
+   ========================= */
+
+Table saved_routes {
+  saved_route_id bigint [pk, increment]
+  user_id bigint [not null]
+  source_type saved_route_source_type [not null]
+  source_id bigint [not null]
+  source_available boolean [not null, default: true]
+  saved_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (user_id, source_type, source_id) [unique, name: 'uk_saved_route_source']
+    (user_id, source_available, saved_at, saved_route_id) [name: 'idx_saved_routes_cursor']
+  }
+
+  Note: 'source_id는 POST 또는 AI_PREVIEW를 가리키는 polymorphic reference이므로 DB FK를 직접 걸지 않고 Service가 무결성을 검증한다.'
+}
+
+Table follows {
+  follower_user_id bigint [not null]
+  following_user_id bigint [not null]
+  followed_at datetime [not null]
+
+  indexes {
+    (follower_user_id, following_user_id) [pk]
+    (following_user_id, followed_at) [name: 'idx_followers']
+    (follower_user_id, followed_at) [name: 'idx_followings']
+  }
+}
+
+Table user_blocks {
+  blocker_user_id bigint [not null]
+  blocked_user_id bigint [not null]
+  blocked_at datetime [not null]
+
+  indexes {
+    (blocker_user_id, blocked_user_id) [pk]
+    (blocked_user_id, blocker_user_id) [name: 'idx_user_blocks_reverse']
+  }
+}
+
+/* =========================
+   EVENT
+   ========================= */
+
+Table events {
+  event_id bigint [pk]
+  name varchar [not null]
+  sigungu_code varchar(5) [not null]
+  place_name varchar [not null]
+  start_date date [not null]
+  end_date date [not null]
+  thumbnail_url varchar [null]
+  updated_at datetime [not null]
+
+  indexes {
+    (start_date, end_date, event_id) [name: 'idx_events_period']
+    (sigungu_code, start_date, event_id) [name: 'idx_events_sigungu_period']
+  }
+
+  Note: 'UPCOMING/ONGOING 상태는 날짜 기준으로 계산한다.'
+}
+
+/* =========================
+   AI JOB / PREVIEW
+   ========================= */
+
+Table ai_recommendation_jobs {
+  job_id bigint [pk]
+  user_id bigint [not null]
+  target_trip_id bigint [null]
+  request_type ai_request_type [not null]
+  status backend_ai_job_status [not null]
+  region_code varchar(5) [not null]
+  start_date date [not null]
+  end_date date [not null]
+  companion_type companion_type [not null]
+  pace pace [not null]
+  themes json [not null]
+  saved_place_ids json [not null]
+  wishlist_place_ids json [not null]
+  existing_schedule json [not null]
+  allow_additional_recommendations boolean [not null]
+  requested_at datetime [not null]
+  started_at datetime [null]
+  completed_at datetime [null]
+  expired_at datetime [null]
+  error_code varchar [null]
+  error_message varchar [null]
+  error_retryable boolean [null]
+
+  indexes {
+    (user_id, requested_at, job_id) [name: 'idx_ai_jobs_daily_limit']
+    (status, started_at) [name: 'idx_ai_jobs_timeout']
+  }
+
+  Note: '비동기 Callback 검증/Preview 적용에 필요한 원 요청 조건을 보존한다.'
+}
+
+Table ai_trip_previews {
+  preview_id bigint [pk, increment]
+  job_id bigint [not null, unique]
+  user_id bigint [not null]
+  trip_title varchar [null, note: '만료 tombstone에서는 사용자 콘텐츠 제거 가능']
+  summary text [null, note: '만료 tombstone에서는 사용자 콘텐츠 제거 가능']
+  retention_status preview_retention_status [not null]
+  expires_at datetime [null]
+  saved_at datetime [null]
+  applied_trip_id bigint [null]
+  applied_at datetime [null]
+  version bigint [not null, default: 0]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (user_id, retention_status, expires_at) [name: 'idx_ai_preview_expiration']
+  }
+}
+
+Table ai_preview_hashtags {
+  preview_id bigint [not null]
+  hashtag varchar(10) [not null]
+
+  indexes {
+    (preview_id, hashtag) [pk]
+  }
+}
+
+Table ai_preview_days {
+  preview_day_id bigint [pk, increment]
+  preview_id bigint [not null]
+  day_number int [not null]
+
+  indexes {
+    (preview_id, day_number) [unique, name: 'uk_ai_preview_day']
+    (preview_id, preview_day_id) [unique, name: 'uk_ai_preview_day_pair']
+  }
+}
+
+Table ai_preview_places {
+  preview_place_id bigint [pk, increment]
+  preview_id bigint [not null]
+  preview_day_id bigint [not null]
+  place_id bigint [not null]
+  visit_order int [not null]
+  reason varchar(100) [not null]
+
+  indexes {
+    (preview_id, place_id) [unique, name: 'uk_ai_preview_place_global']
+    (preview_day_id, visit_order) [unique, name: 'uk_ai_preview_day_order']
+    (preview_id, preview_day_id) [name: 'idx_ai_preview_place_day']
+  }
+}
+
+/* =========================
+   REFERENCES
+   ========================= */
+
+Ref: user_social_accounts.user_id > users.user_id
+Ref: refresh_tokens.user_id > users.user_id
+
+Ref: personality_questions.test_version > personality_tests.test_version
+Ref: personality_options.question_id > personality_questions.question_id
+Ref: personality_submissions.user_id > users.user_id
+Ref: personality_submissions.test_version > personality_tests.test_version
+Ref: personality_answers.submission_id > personality_submissions.submission_id
+Ref: personality_answers.question_id > personality_questions.question_id
+Ref: personality_answers.(question_id, option_id) > personality_options.(question_id, option_id)
+
+Ref: files.user_id > users.user_id
+
+Ref: places.sigungu_code > sigungu_master.sigungu_code
+Ref: place_external_ids.place_id > places.place_id
+Ref: saved_places.user_id > users.user_id
+Ref: saved_places.place_id > places.place_id
+Ref: home_recommended_places.place_id > places.place_id
+
+Ref: trips.user_id > users.user_id
+Ref: trips.sigungu_code > sigungu_master.sigungu_code
+Ref: trip_themes.trip_id > trips.trip_id
+Ref: trip_hashtags.trip_id > trips.trip_id
+Ref: trip_days.trip_id > trips.trip_id
+Ref: trip_places.trip_id > trips.trip_id
+Ref: trip_places.(trip_id, trip_day_id) > trip_days.(trip_id, trip_day_id)
+Ref: trip_places.place_id > places.place_id
+Ref: trip_place_images.trip_place_id > trip_places.trip_place_id
+Ref: trip_place_images.file_id > files.file_id
+Ref: trip_wishlist_places.trip_id > trips.trip_id
+Ref: trip_wishlist_places.place_id > places.place_id
+
+Ref: posts.trip_id > trips.trip_id
+Ref: posts.representative_file_id > files.file_id
+Ref: post_images.post_id > posts.post_id
+Ref: post_images.file_id > files.file_id
+Ref: post_places.post_id > posts.post_id
+Ref: post_places.trip_place_id > trip_places.trip_place_id
+Ref: post_hashtags.post_id > posts.post_id
+Ref: post_view_histories.post_id > posts.post_id
+Ref: post_view_histories.viewer_user_id > users.user_id
+Ref: post_daily_metrics.post_id > posts.post_id
+Ref: reports.reporter_user_id > users.user_id
+Ref: reports.post_id > posts.post_id
+
+Ref: saved_routes.user_id > users.user_id
+Ref: follows.follower_user_id > users.user_id
+Ref: follows.following_user_id > users.user_id
+Ref: user_blocks.blocker_user_id > users.user_id
+Ref: user_blocks.blocked_user_id > users.user_id
+
+Ref: events.sigungu_code > sigungu_master.sigungu_code
+
+Ref: ai_recommendation_jobs.user_id > users.user_id
+Ref: ai_recommendation_jobs.target_trip_id > trips.trip_id
+Ref: ai_trip_previews.job_id > ai_recommendation_jobs.job_id
+Ref: ai_trip_previews.user_id > users.user_id
+Ref: ai_trip_previews.applied_trip_id > trips.trip_id
+Ref: ai_preview_hashtags.preview_id > ai_trip_previews.preview_id
+Ref: ai_preview_days.preview_id > ai_trip_previews.preview_id
+Ref: ai_preview_places.preview_id > ai_trip_previews.preview_id
+Ref: ai_preview_places.(preview_id, preview_day_id) > ai_preview_days.(preview_id, preview_day_id)
+Ref: ai_preview_places.place_id > places.place_id
