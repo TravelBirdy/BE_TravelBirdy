@@ -1,0 +1,48 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:travelbird-test;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: false
+
+  jackson:
+    time-zone: UTC
+
+app:
+  jwt:
+    secret: test-secret-test-secret-test-secret-test-secret
+    access-token-seconds: 1800
+    refresh-token-seconds: 2592000
+
+  naver:
+    client-id: test-client-id
+    client-secret: test-client-secret
+
+  ai:
+    server-base-url: http://localhost:18080
+    internal-key: test-internal-ai-key
+    callback-timeout-seconds: 180
+
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+
+  aws:
+    region: ap-northeast-2
+    s3:
+      bucket: travelbird-test
+
+# Temporary test-only H2 profile. Keep isolated under src/test so it can be removed
+# after switching validation back to the target MySQL-based integration test path.
