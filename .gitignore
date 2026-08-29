@@ -1,3 +1,7 @@
-﻿.worktrees/
+.worktrees/
 .gradle/
 build/
+.env
+.env.*
+docs/
+daily-log/

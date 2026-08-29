@@ -15,7 +15,7 @@ spring:
           time_zone: UTC
 
   flyway:
-    enabled: false
+    enabled: true
 
   jackson:
     time-zone: UTC
