@@ -61,4 +61,13 @@ public class User {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public static User createFromKakao(String email) {
+        User user = new User();
+        user.email = email;
+        user.status = UserStatus.ACTIVE;
+        user.role = UserRole.ROLE_USER;
+        user.onboardingCompleted = false;
+        return user;
+    }
 }
