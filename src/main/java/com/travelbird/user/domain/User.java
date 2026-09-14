@@ -71,6 +71,15 @@ public class User {
         return user;
     }
 
+    public void updateProfile(String nickname, String introduction) {
+        if (nickname != null) {
+            this.nickname = nickname;
+        }
+        if (introduction != null) {
+            this.introduction = introduction;
+        }
+    }
+
     public void assignBirdType(BirdType birdType) {
         this.birdType = birdType;
         this.onboardingCompleted = true;
