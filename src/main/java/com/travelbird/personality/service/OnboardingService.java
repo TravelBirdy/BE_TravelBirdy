@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -159,7 +160,12 @@ public class OnboardingService {
             submission = existing.get();
             personalityAnswerRepository.deleteAllBySubmissionId(submission.getSubmissionId());
         } else {
-            submission = personalitySubmissionRepository.save(PersonalitySubmission.create(user, activeTest));
+            try {
+                submission = personalitySubmissionRepository.save(PersonalitySubmission.create(user, activeTest));
+            } catch (DataIntegrityViolationException e) {
+                // user_id UNIQUE 제약: 동시에 두 번 제출된 경우 먼저 처리된 쪽이 이긴 것으로 본다.
+                throw new ApiException(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
+            }
         }
 
         Map<PersonalityTrait, Integer> scores = new EnumMap<>(PersonalityTrait.class);
