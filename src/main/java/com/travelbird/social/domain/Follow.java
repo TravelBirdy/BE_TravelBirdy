@@ -41,4 +41,12 @@ public class Follow {
     @CreatedDate
     @Column(name = "followed_at", nullable = false, updatable = false)
     private LocalDateTime followedAt;
+
+    public static Follow create(User follower, User following) {
+        Follow follow = new Follow();
+        follow.id = new FollowId(follower.getUserId(), following.getUserId());
+        follow.follower = follower;
+        follow.following = following;
+        return follow;
+    }
 }

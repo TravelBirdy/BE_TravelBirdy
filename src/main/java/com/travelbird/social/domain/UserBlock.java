@@ -41,4 +41,12 @@ public class UserBlock {
     @CreatedDate
     @Column(name = "blocked_at", nullable = false, updatable = false)
     private LocalDateTime blockedAt;
+
+    public static UserBlock create(User blocker, User blocked) {
+        UserBlock userBlock = new UserBlock();
+        userBlock.id = new UserBlockId(blocker.getUserId(), blocked.getUserId());
+        userBlock.blocker = blocker;
+        userBlock.blocked = blocked;
+        return userBlock;
+    }
 }
