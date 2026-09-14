@@ -3,6 +3,7 @@ package com.travelbird.global.security;
 import com.travelbird.global.security.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -37,6 +38,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/kakao/login", "/api/auth/token/refresh").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/home").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
