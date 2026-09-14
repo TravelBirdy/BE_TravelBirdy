@@ -1,5 +1,6 @@
 package com.travelbird.personality.service;
 
+import com.travelbird.common.util.PersonalityProfiles;
 import com.travelbird.personality.dto.response.PartnerBirdResponse;
 import com.travelbird.personality.dto.request.PersonalityAnswerRequest;
 import com.travelbird.personality.dto.response.PersonalityOptionResponse;
@@ -43,20 +44,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class OnboardingService {
-
-    private record TraitProfile(BirdType birdType, String birdName, String description) {
-    }
-
-    private static final Map<PersonalityTrait, TraitProfile> TRAIT_PROFILES = Map.of(
-            PersonalityTrait.REST, new TraitProfile(BirdType.OMOKNUNI, "오목눈이", "힐링/휴양"),
-            PersonalityTrait.ACTIVITY, new TraitProfile(BirdType.MULCHONGSAE, "물총새", "액티비티/모험"),
-            PersonalityTrait.CULTURE, new TraitProfile(BirdType.HOBANSAE, "호반새", "문화/예술"),
-            PersonalityTrait.GOURMET, new TraitProfile(BirdType.DDAKSAE, "딱새", "미식/맛집"),
-            PersonalityTrait.PHOTO, new TraitProfile(BirdType.DONGBAKSAE, "동박새", "감성/기록")
-    );
-
-    private static final Map<BirdType, PersonalityTrait> TRAIT_BY_BIRD_TYPE = TRAIT_PROFILES.entrySet().stream()
-            .collect(Collectors.toMap(e -> e.getValue().birdType(), Map.Entry::getKey));
 
     private final UserRepository userRepository;
     private final PersonalityTestRepository personalityTestRepository;
@@ -185,7 +172,7 @@ public class OnboardingService {
 
         if (topTraits.size() == 1) {
             PersonalityTrait winner = topTraits.get(0);
-            TraitProfile profile = TRAIT_PROFILES.get(winner);
+            PersonalityProfiles.TraitProfile profile = PersonalityProfiles.TRAIT_PROFILES.get(winner);
             submission.recordSingleWinner(scores, winner, profile.birdType());
             user.assignBirdType(profile.birdType());
             return new PersonalityTestSubmissionResult.Completed(new PersonalityTestCompletedResponse(
@@ -220,7 +207,7 @@ public class OnboardingService {
             throw new ApiException(ErrorCode.INVALID_TIE_BREAKER_SELECTION);
         }
 
-        TraitProfile profile = TRAIT_PROFILES.get(request.selectedTrait());
+        PersonalityProfiles.TraitProfile profile = PersonalityProfiles.TRAIT_PROFILES.get(request.selectedTrait());
         submission.resolveTieBreaker(request.selectedTrait(), profile.birdType());
         user.assignBirdType(profile.birdType());
 
@@ -239,8 +226,8 @@ public class OnboardingService {
         if (user.getBirdType() == null) {
             return new PartnerBirdResponse(user.isOnboardingCompleted(), null, null, null, null);
         }
-        PersonalityTrait trait = TRAIT_BY_BIRD_TYPE.get(user.getBirdType());
-        TraitProfile profile = TRAIT_PROFILES.get(trait);
+        PersonalityTrait trait = PersonalityProfiles.traitFor(user.getBirdType());
+        PersonalityProfiles.TraitProfile profile = PersonalityProfiles.TRAIT_PROFILES.get(trait);
         return new PartnerBirdResponse(true, user.getBirdType(), profile.birdName(), trait, profile.description());
     }
 
