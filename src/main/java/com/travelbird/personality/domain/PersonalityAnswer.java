@@ -33,4 +33,13 @@ public class PersonalityAnswer {
 
     @Column(name = "option_id", nullable = false)
     private Long optionId;
+
+    public static PersonalityAnswer create(PersonalitySubmission submission, PersonalityQuestion question, Long optionId) {
+        PersonalityAnswer answer = new PersonalityAnswer();
+        answer.id = new PersonalityAnswerId(submission.getSubmissionId(), question.getQuestionId());
+        answer.submission = submission;
+        answer.question = question;
+        answer.optionId = optionId;
+        return answer;
+    }
 }

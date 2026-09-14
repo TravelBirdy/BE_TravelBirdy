@@ -71,6 +71,11 @@ public class User {
         return user;
     }
 
+    public void assignBirdType(BirdType birdType) {
+        this.birdType = birdType;
+        this.onboardingCompleted = true;
+    }
+
     public void withdraw() {
         this.email = null;
         this.nickname = null;
