@@ -33,6 +33,10 @@ dependencies {
 	// 2. Database (MySQL)
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
+	// 2-1. Flyway (DB Migration)
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-mysql'
+
 	// 3. Password (BCrypt)
 	implementation 'org.mindrot:jbcrypt:0.4'
 
