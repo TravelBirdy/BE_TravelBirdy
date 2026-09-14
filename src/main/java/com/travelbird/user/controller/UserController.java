@@ -1,6 +1,8 @@
 package com.travelbird.user.controller;
 
 import com.travelbird.global.security.SecurityUtils;
+import com.travelbird.mypage.dto.response.MyPageResponse;
+import com.travelbird.mypage.service.MyPageService;
 import com.travelbird.personality.dto.response.PartnerBirdResponse;
 import com.travelbird.personality.service.OnboardingService;
 import com.travelbird.user.dto.response.ProfileResponse;
@@ -22,15 +24,18 @@ public class UserController {
     private final WithdrawalService withdrawalService;
     private final OnboardingService onboardingService;
     private final ProfileService profileService;
+    private final MyPageService myPageService;
 
     public UserController(
             WithdrawalService withdrawalService,
             OnboardingService onboardingService,
-            ProfileService profileService
+            ProfileService profileService,
+            MyPageService myPageService
     ) {
         this.withdrawalService = withdrawalService;
         this.onboardingService = onboardingService;
         this.profileService = profileService;
+        this.myPageService = myPageService;
     }
 
     @GetMapping("/me")
@@ -52,5 +57,10 @@ public class UserController {
     @GetMapping("/me/partner-bird")
     public ResponseEntity<PartnerBirdResponse> partnerBird() {
         return ResponseEntity.ok(onboardingService.getPartnerBird(SecurityUtils.getCurrentUserId()));
+    }
+
+    @GetMapping("/me/mypage")
+    public ResponseEntity<MyPageResponse> myPage() {
+        return ResponseEntity.ok(myPageService.getMyPage(SecurityUtils.getCurrentUserId()));
     }
 }
