@@ -70,4 +70,13 @@ public class User {
         user.onboardingCompleted = false;
         return user;
     }
+
+    public void withdraw() {
+        this.email = null;
+        this.nickname = null;
+        this.introduction = null;
+        this.birdType = null;
+        this.onboardingCompleted = false;
+        this.status = UserStatus.WITHDRAWN;
+    }
 }
