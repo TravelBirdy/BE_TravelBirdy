@@ -200,6 +200,22 @@ class OnboardingServiceTest {
     }
 
     @Test
+    void submitPersonalityTest_concurrentDuplicateInsert_throwsAlreadyCompleted() {
+        stubQuestionsAndOptions(PersonalityTrait.REST, PersonalityTrait.REST, PersonalityTrait.REST,
+                PersonalityTrait.ACTIVITY, PersonalityTrait.ACTIVITY, PersonalityTrait.CULTURE,
+                PersonalityTrait.GOURMET, PersonalityTrait.PHOTO);
+        when(personalitySubmissionRepository.findByUser_UserId(1L)).thenReturn(Optional.empty());
+        when(personalitySubmissionRepository.save(any(PersonalitySubmission.class)))
+                .thenThrow(new org.springframework.dao.DataIntegrityViolationException("uk_personality_submission_user"));
+        var request = new PersonalityTestSubmissionRequest("v1", optionAnswers());
+
+        assertThatThrownBy(() -> onboardingService.submitPersonalityTest(1L, request))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isEqualTo(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
+    }
+
+    @Test
     void submitTieBreaker_notOwner_throwsAccessDenied() {
         User otherUser = User.createFromKakao(null);
         ReflectionTestUtils.setField(otherUser, "userId", 2L);
