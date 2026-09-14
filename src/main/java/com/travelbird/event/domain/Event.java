@@ -55,4 +55,31 @@ public class Event {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public static Event create(
+            String tourApiContentId, String name, String sigunguCode,
+            String placeName, LocalDate startDate, LocalDate endDate, String thumbnailUrl
+    ) {
+        Event event = new Event();
+        event.tourApiContentId = tourApiContentId;
+        event.name = name;
+        event.sigunguCode = sigunguCode;
+        event.placeName = placeName;
+        event.startDate = startDate;
+        event.endDate = endDate;
+        event.thumbnailUrl = thumbnailUrl;
+        return event;
+    }
+
+    public void updateFrom(
+            String name, String sigunguCode, String placeName,
+            LocalDate startDate, LocalDate endDate, String thumbnailUrl
+    ) {
+        this.name = name;
+        this.sigunguCode = sigunguCode;
+        this.placeName = placeName;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.thumbnailUrl = thumbnailUrl;
+    }
 }
