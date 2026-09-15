@@ -29,7 +29,8 @@ public enum ErrorCode {
     CANNOT_FOLLOW_SELF(HttpStatus.BAD_REQUEST, "CANNOT_FOLLOW_SELF"),
     CANNOT_FOLLOW_BLOCKED_USER(HttpStatus.FORBIDDEN, "CANNOT_FOLLOW_BLOCKED_USER"),
     CANNOT_BLOCK_SELF(HttpStatus.BAD_REQUEST, "CANNOT_BLOCK_SELF"),
-    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND");
+    EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND"),
+    VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "잘못된 요청입니다.");
 
     private final HttpStatus httpStatus;
     private final String defaultMessage;
