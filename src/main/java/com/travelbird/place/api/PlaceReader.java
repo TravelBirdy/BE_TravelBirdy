@@ -19,11 +19,16 @@ public interface PlaceReader {
 
 	/**
 	 * 단일 장소 정보를 조회한다. 존재하지 않으면 예외를 던진다.
+	 *
+	 * @param viewerIdOrNull {@link PlaceContract#saved()} 계산 기준. 비로그인/viewer 미상이면
+	 *                       {@code null}이고 이 경우 {@code saved}는 항상 {@code false}다.
 	 */
-	PlaceContract getPlace(Long placeId);
+	PlaceContract getPlace(Long placeId, Long viewerIdOrNull);
 
 	/**
 	 * 여러 장소 정보를 한 번에 조회한다. 존재하지 않는 ID는 결과에서 제외한다.
+	 *
+	 * @param viewerIdOrNull {@link #getPlace(Long, Long)} 와 동일.
 	 */
-	List<PlaceContract> getPlaces(List<Long> placeIds);
+	List<PlaceContract> getPlaces(List<Long> placeIds, Long viewerIdOrNull);
 }

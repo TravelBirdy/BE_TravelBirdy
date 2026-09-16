@@ -10,6 +10,12 @@ package com.travelbird.post.api;
  * <p>역할: 작성 Post 삭제/tombstone 처리, 타인이 저장한 해당 Post의 SavedRoute를
  * {@code sourceAvailable=false} 로 변경, 본인의 {@code saved_places}/{@code saved_routes}/신고
  * 부가정보 정리.
+ *
+ * <p>본인의 {@code saved_routes} 중 {@code sourceType=AI_PREVIEW} 인 것을 삭제하는 경우,
+ * 삭제 후 해당 {@code previewId}를 참조하는 활성 SavedRoute가 0개가 되면 Part 2
+ * {@code AiPreviewSavedRouteService}에 {@code PERMANENT -> TEMPORARY} 강등을 같은 트랜잭션에서
+ * 요청한다. 그렇지 않으면 아무도 참조하지 않는 Preview가 {@code PERMANENT}로 고아 상태로 남는다.
+ * (공통협의 8절, 9절 AI Preview SavedRoute 저장 취소 절차와 동일)
  */
 public interface PostWithdrawalCleanup {
 
