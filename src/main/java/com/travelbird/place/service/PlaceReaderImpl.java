@@ -1,6 +1,6 @@
 package com.travelbird.place.service;
 
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.place.api.PlaceContract;
 import com.travelbird.place.api.PlaceReader;
@@ -28,7 +28,7 @@ public class PlaceReaderImpl implements PlaceReader {
     @Override
     public PlaceContract getPlace(Long placeId, Long viewerIdOrNull) {
         Place place = placeRepository.findById(placeId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PLACE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
         boolean saved = viewerIdOrNull != null
                 && savedPlaceReader.areAllSavedByUser(viewerIdOrNull, List.of(placeId));
         return toContract(place, saved);
