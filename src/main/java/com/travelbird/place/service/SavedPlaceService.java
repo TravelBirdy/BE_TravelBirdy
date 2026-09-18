@@ -1,6 +1,6 @@
 package com.travelbird.place.service;
 
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.place.controller.dto.SavedPlaceCursorPageResponse;
 import com.travelbird.place.controller.dto.SavedPlaceListItem;
@@ -41,7 +41,7 @@ public class SavedPlaceService {
     /** 저장/메모 갱신을 멱등하게 처리한다 — 이미 저장돼 있으면 memo만 갱신한다. */
     public void save(Long userId, Long placeId, String memo) {
         if (!placeRepository.existsById(placeId)) {
-            throw new ApiException(ErrorCode.PLACE_NOT_FOUND);
+            throw new BusinessException(ErrorCode.PLACE_NOT_FOUND);
         }
         validateMemoLength(memo);
 
@@ -60,7 +60,7 @@ public class SavedPlaceService {
     public void updateMemo(Long userId, Long placeId, String memo) {
         validateMemoLength(memo);
         SavedPlace savedPlace = savedPlaceRepository.findById(new SavedPlaceId(userId, placeId))
-                .orElseThrow(() -> new ApiException(ErrorCode.SAVED_PLACE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.SAVED_PLACE_NOT_FOUND));
         savedPlace.updateMemo(memo);
     }
 
@@ -131,7 +131,7 @@ public class SavedPlaceService {
 
     private void validateMemoLength(String memo) {
         if (memo != null && memo.length() > MEMO_MAX_LENGTH) {
-            throw new ApiException(ErrorCode.SAVED_PLACE_MEMO_TOO_LONG);
+            throw new BusinessException(ErrorCode.SAVED_PLACE_MEMO_TOO_LONG);
         }
     }
 }
