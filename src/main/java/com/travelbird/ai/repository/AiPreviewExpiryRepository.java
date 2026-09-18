@@ -1,0 +1,3 @@
+package com.travelbird.ai.repository;
+import com.travelbird.ai.entity.AiTripPreview;import java.time.LocalDateTime;import java.util.List;import org.springframework.data.jpa.repository.*;import org.springframework.data.repository.query.Param;
+public interface AiPreviewExpiryRepository extends JpaRepository<AiTripPreview,Long>{@Query(value="SELECT p.preview_id FROM ai_trip_previews p WHERE p.retention_status='TEMPORARY' AND p.expires_at<=:now AND NOT EXISTS (SELECT 1 FROM saved_routes r WHERE r.source_type='AI_PREVIEW' AND r.source_id=p.preview_id AND r.source_available=TRUE)",nativeQuery=true)List<Long> findExpiredIds(@Param("now")LocalDateTime now);}
