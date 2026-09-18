@@ -3,10 +3,15 @@ package com.travelbird.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.travelbird.file.client.S3FileStorage;
+import com.travelbird.file.domain.FileAsset;
+import com.travelbird.file.domain.FilePurpose;
 import com.travelbird.user.domain.RefreshToken;
 import com.travelbird.user.domain.User;
 import com.travelbird.user.domain.UserStatus;
@@ -19,6 +24,7 @@ import com.travelbird.social.repository.UserBlockRepository;
 import com.travelbird.user.repository.UserRepository;
 import com.travelbird.user.repository.UserSocialAccountRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +48,8 @@ class WithdrawalServiceTest {
     private UserBlockRepository userBlockRepository;
     @Mock
     private FileAssetRepository fileAssetRepository;
+    @Mock
+    private S3FileStorage s3FileStorage;
 
     private WithdrawalService withdrawalService;
 
@@ -49,7 +57,7 @@ class WithdrawalServiceTest {
     void setUp() {
         withdrawalService = new WithdrawalService(
                 userRepository, refreshTokenRepository, userSocialAccountRepository,
-                followRepository, userBlockRepository, fileAssetRepository);
+                followRepository, userBlockRepository, fileAssetRepository, s3FileStorage);
     }
 
     @Test
@@ -71,7 +79,7 @@ class WithdrawalServiceTest {
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_ACTIVE);
 
-        verify(fileAssetRepository, never()).deleteAllByUserId(any());
+        verify(fileAssetRepository, never()).findAllByUserId(any());
     }
 
     @Test
@@ -81,7 +89,7 @@ class WithdrawalServiceTest {
         withdrawalService.withdraw(1L);
 
         verify(refreshTokenRepository, never()).findById(any());
-        verify(fileAssetRepository, never()).deleteAllByUserId(any());
+        verify(fileAssetRepository, never()).findAllByUserId(any());
         verify(followRepository, never()).deleteAllInvolvingUser(any());
         verify(userBlockRepository, never()).deleteAllInvolvingUser(any());
         verify(userSocialAccountRepository, never()).deleteAllByUserId(any());
@@ -93,11 +101,14 @@ class WithdrawalServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         RefreshToken token = RefreshToken.issue(1L, "hash", LocalDateTime.now().plusDays(1));
         when(refreshTokenRepository.findById(1L)).thenReturn(Optional.of(token));
+        FileAsset file = ownedFile(user, 10L, "uploads/trip_place/1/10.webp");
+        when(fileAssetRepository.findAllByUserId(1L)).thenReturn(List.of(file));
 
         withdrawalService.withdraw(1L);
 
         assertThat(token.getRevokedAt()).isNotNull();
-        verify(fileAssetRepository).deleteAllByUserId(1L);
+        verify(s3FileStorage).delete("uploads/trip_place/1/10.webp");
+        verify(fileAssetRepository).deleteAll(List.of(file));
         verify(followRepository).deleteAllInvolvingUser(1L);
         verify(userBlockRepository).deleteAllInvolvingUser(1L);
         verify(userSocialAccountRepository).deleteAllByUserId(1L);
@@ -108,6 +119,28 @@ class WithdrawalServiceTest {
         assertThat(user.getIntroduction()).isNull();
         assertThat(user.getBirdType()).isNull();
         assertThat(user.isOnboardingCompleted()).isFalse();
+    }
+
+    @Test
+    void withdraw_s3DeleteFails_stillDeletesDbRowAndCompletesWithdrawal() {
+        User user = existingUserWithStatus(UserStatus.ACTIVE);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        FileAsset file = ownedFile(user, 10L, "uploads/trip_place/1/10.webp");
+        when(fileAssetRepository.findAllByUserId(1L)).thenReturn(List.of(file));
+        doThrow(new RuntimeException("S3 unavailable"))
+                .when(s3FileStorage).delete("uploads/trip_place/1/10.webp");
+
+        withdrawalService.withdraw(1L);
+
+        verify(fileAssetRepository, times(1)).deleteAll(List.of(file));
+        assertThat(user.getStatus()).isEqualTo(UserStatus.WITHDRAWN);
+    }
+
+    private FileAsset ownedFile(User owner, Long fileId, String objectKey) {
+        FileAsset fileAsset = FileAsset.createPending(owner, "photo.webp", objectKey, "image/webp",
+                400_000L, 1080, 720, FilePurpose.TRIP_PLACE, LocalDateTime.now().plusHours(24));
+        ReflectionTestUtils.setField(fileAsset, "fileId", fileId);
+        return fileAsset;
     }
 
     private User existingUserWithStatus(UserStatus status) {

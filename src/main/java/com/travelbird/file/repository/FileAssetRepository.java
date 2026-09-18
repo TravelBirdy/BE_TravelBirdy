@@ -6,15 +6,13 @@ import com.travelbird.file.domain.FileStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface FileAssetRepository extends JpaRepository<FileAsset, Long> {
 
-    @Modifying
-    @Query("delete from FileAsset f where f.user.userId = :userId")
-    void deleteAllByUserId(@Param("userId") Long userId);
+    @Query("select f from FileAsset f where f.user.userId = :userId")
+    List<FileAsset> findAllByUserId(@Param("userId") Long userId);
 
     @Query("select count(f) from FileAsset f where f.user.userId = :userId and f.purpose = :purpose "
             + "and f.status in (com.travelbird.file.domain.FileStatus.PENDING, com.travelbird.file.domain.FileStatus.UPLOADED)")
