@@ -15,7 +15,9 @@ public enum ErrorCode {
     TOKEN_ACCESS_DENIED(HttpStatus.FORBIDDEN, "TOKEN_ACCESS_DENIED"),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED"),
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN"),
-    PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 장소입니다.");
+    PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 장소입니다."),
+    SAVED_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "저장하지 않은 장소입니다."),
+    SAVED_PLACE_MEMO_TOO_LONG(HttpStatus.BAD_REQUEST, "메모는 최대 100자까지 입력할 수 있습니다.");
 
     private final HttpStatus httpStatus;
     private final String defaultMessage;
