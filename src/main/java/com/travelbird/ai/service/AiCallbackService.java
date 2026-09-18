@@ -4,7 +4,7 @@ import com.travelbird.ai.dto.internal.*;
 import com.travelbird.ai.entity.*;
 import com.travelbird.ai.repository.*;
 import com.travelbird.global.error.*;
-import com.travelbird.place.repository.PlaceRepository;
+import com.travelbird.place.api.PlaceReader;
 import java.time.*;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -17,13 +17,13 @@ public class AiCallbackService {
   private final AiPreviewPersistenceService persistence;
   private final AiPreviewRouteValidator validator;
   private final RecommendationSnapshotCodec snapshots;
-  private final PlaceRepository places;
+  private final PlaceReader places;
   private final Clock clock;
 
   public AiCallbackService(AiRecommendationJobRepository jobs, AiTripPreviewRepository previews,
       AiPreviewPersistenceService persistence, AiJobTransitionService ignored,
       AiPreviewRouteValidator validator, RecommendationSnapshotCodec snapshots,
-      PlaceRepository places, Clock clock) {
+      PlaceReader places, Clock clock) {
     this.jobs=jobs; this.previews=previews; this.persistence=persistence;
     this.validator=validator; this.snapshots=snapshots; this.places=places; this.clock=clock;
   }
@@ -62,10 +62,10 @@ public class AiCallbackService {
           snapshot.allowAdditionalRecommendations());
       Set<Long> ids = request.days().stream().flatMap(day -> day.places().stream())
           .map(AiResultPlace::placeId).collect(java.util.stream.Collectors.toSet());
-      var found = places.findAllById(ids);
+      var found = places.getPlaces(new ArrayList<>(ids), null);
       if (found.size() != ids.size()) failValidation(job, AiJobFailureCode.AI_PLACE_NOT_FOUND,
           "AI callback contains an unknown place");
-      if (found.stream().anyMatch(place -> !place.getRegion().getSigunguCode().equals(snapshot.regionCode()))) {
+      if (found.stream().anyMatch(place -> !place.sigunguCode().equals(snapshot.regionCode()))) {
         failValidation(job, AiJobFailureCode.PLACE_REGION_MISMATCH,
             "AI callback contains a place outside the requested region");
       }
