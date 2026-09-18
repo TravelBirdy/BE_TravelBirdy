@@ -101,7 +101,7 @@ class PlaceDomainIntegrationTest {
     void getPlace는_존재하지_않는_ID면_예외를_던진다() {
         assertThat(placeReader.existsPlace(999_999L)).isFalse();
         org.junit.jupiter.api.Assertions.assertThrows(
-                com.travelbird.global.error.ApiException.class,
+                com.travelbird.global.error.BusinessException.class,
                 () -> placeReader.getPlace(999_999L, null));
     }
 

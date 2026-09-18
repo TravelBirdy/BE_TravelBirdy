@@ -1,7 +1,7 @@
 package com.travelbird.place.service;
 
 import com.travelbird.common.dto.RegionSummary;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.place.api.SavedPlaceReader;
 import com.travelbird.place.controller.dto.PlaceDetailResponse;
@@ -30,7 +30,7 @@ public class PlaceDetailService {
 
     public PlaceDetailResponse getPlaceDetail(Long placeId, Long viewerIdOrNull) {
         Place place = placeRepository.findById(placeId)
-                .orElseThrow(() -> new ApiException(ErrorCode.PLACE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PLACE_NOT_FOUND));
 
         RegionSummary region = regionReader.getRegion(place.getSigunguCode());
 
