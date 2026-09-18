@@ -1,7 +1,6 @@
 package com.travelbird.ai.entity;
 
 import com.travelbird.trip.entity.Trip;
-import com.travelbird.user.entity.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -12,7 +11,7 @@ import lombok.*;
 public class AiTripPreview {
   @Id @GeneratedValue(strategy=GenerationType.IDENTITY) @Column(name="preview_id") private Long id;
   @OneToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="job_id",nullable=false,unique=true) private AiRecommendationJob job;
-  @ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="user_id",nullable=false) private User user;
+  @Column(name="user_id",nullable=false) private Long userId;
   @Column(name="trip_title") private String tripTitle;
   @Column(columnDefinition="TEXT") private String summary;
   @Enumerated(EnumType.STRING) @Column(name="retention_status",nullable=false) private AiPreviewRetentionStatus retentionStatus;
@@ -25,8 +24,8 @@ public class AiTripPreview {
   @Column(name="updated_at",nullable=false) private LocalDateTime updatedAt;
   @OneToMany(mappedBy="preview",cascade=CascadeType.ALL,orphanRemoval=true) @OrderBy("dayNumber") private List<AiPreviewDay> days=new ArrayList<>();
   @ElementCollection @CollectionTable(name="ai_preview_hashtags",joinColumns=@JoinColumn(name="preview_id")) @Column(name="hashtag",length=10) private Set<String> hashtags=new LinkedHashSet<>();
-  public static AiTripPreview temporary(AiRecommendationJob job,User user,String title,String summary,LocalDateTime now){var p=new AiTripPreview();p.job=job;p.user=user;p.tripTitle=title;p.summary=summary;p.retentionStatus=AiPreviewRetentionStatus.TEMPORARY;p.expiresAt=now.plusHours(24);p.createdAt=now;p.updatedAt=now;return p;}
-  public boolean ownedBy(Long uid){return user!=null&&Objects.equals(user.getId(),uid);}
+  public static AiTripPreview temporary(AiRecommendationJob job,Long userId,String title,String summary,LocalDateTime now){var p=new AiTripPreview();p.job=job;p.userId=userId;p.tripTitle=title;p.summary=summary;p.retentionStatus=AiPreviewRetentionStatus.TEMPORARY;p.expiresAt=now.plusHours(24);p.createdAt=now;p.updatedAt=now;return p;}
+  public boolean ownedBy(Long uid){return Objects.equals(userId,uid);}
   public boolean expired(LocalDateTime now){return retentionStatus==AiPreviewRetentionStatus.TEMPORARY&&expiresAt!=null&&!expiresAt.isAfter(now);}
   public void makePermanent(LocalDateTime now){if(retentionStatus==AiPreviewRetentionStatus.PERMANENT)return;retentionStatus=AiPreviewRetentionStatus.PERMANENT;expiresAt=null;savedAt=now;updatedAt=now;}
   public void makeTemporary(LocalDateTime now){if(retentionStatus==AiPreviewRetentionStatus.TEMPORARY)return;retentionStatus=AiPreviewRetentionStatus.TEMPORARY;expiresAt=now.plusHours(24);savedAt=null;updatedAt=now;}
@@ -36,3 +35,4 @@ public class AiTripPreview {
   public void applied(Trip trip,LocalDateTime now){appliedTrip=trip;appliedAt=now;updatedAt=now;}
   public void expireContent(LocalDateTime now){days.clear();hashtags.clear();tripTitle=null;summary=null;expiresAt=now;updatedAt=now;job.expire(now);}
 }
+

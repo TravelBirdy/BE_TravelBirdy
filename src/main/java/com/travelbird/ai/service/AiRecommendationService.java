@@ -12,8 +12,7 @@ import com.travelbird.place.repository.SavedPlaceRepository;
 import com.travelbird.region.repository.SigunguMasterRepository;
 import com.travelbird.trip.entity.TravelTheme;
 import com.travelbird.trip.repository.TripRepository;
-import com.travelbird.user.entity.User;
-import com.travelbird.user.repository.UserRepository;
+import com.travelbird.user.api.UserReader;
 import java.security.SecureRandom;
 import java.time.*;
 import java.util.*;
@@ -26,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AiRecommendationService {
   private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
   private final AiRecommendationJobRepository jobs;
-  private final UserRepository users;
+  private final UserReader users;
   private final SavedPlaceRepository savedPlaces;
   private final TripRepository trips;
   private final SigunguMasterRepository regions;
@@ -38,7 +37,7 @@ public class AiRecommendationService {
   private final SecureRandom random = new SecureRandom();
   private AiTripPreviewRepository previews;
 
-  public AiRecommendationService(AiRecommendationJobRepository jobs, UserRepository users,
+  public AiRecommendationService(AiRecommendationJobRepository jobs, UserReader users,
       SavedPlaceRepository savedPlaces, TripRepository trips, SigunguMasterRepository regions,
       AiRecommendationDataReader data, RecommendationSnapshotCodec snapshots,
       RecommendationPayloadFingerprint fingerprints, ApplicationEventPublisher events, Clock clock) {
@@ -49,7 +48,7 @@ public class AiRecommendationService {
 
   @Transactional
   public AiJobAcceptedResponse request(Long userId, AiRecommendationRequest input) {
-    User user = lockUserAndCheckQuota(userId);
+    lockUserAndCheckQuota(userId);
     validateCommon(input.regionCode(), input.startDate(), input.endDate(), input.themes());
     List<Long> ids = input.savedPlaceIds() == null ? List.of() : List.copyOf(input.savedPlaceIds());
     rejectDuplicates(ids);
@@ -64,13 +63,13 @@ public class AiRecommendationService {
           .map(Place::getId).collect(Collectors.toSet());
       AiRecommendationPolicy.saved(ids, owned, regional);
     }
-    return queue(user, null, type, input.regionCode(), input.startDate(), input.endDate(),
+    return queue(userId, null, type, input.regionCode(), input.startDate(), input.endDate(),
         input.companionType(), input.themes(), input.pace(), ids, List.of(), List.of(), true, places);
   }
 
   @Transactional
   public AiJobAcceptedResponse requestTrip(Long userId, Long tripId, AiRouteRecommendationRequest input) {
-    User user = lockUserAndCheckQuota(userId);
+    lockUserAndCheckQuota(userId);
     var trip = trips.findByIdForUpdate(tripId)
         .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_NOT_FOUND));
     if (!trip.ownedBy(userId)) throw new BusinessException(ErrorCode.TRIP_ACCESS_DENIED);
@@ -83,7 +82,7 @@ public class AiRecommendationService {
     List<Long> wishlist = data.wishlist(tripId).stream().map(row -> row.getPlace().getId()).toList();
     AiRecommendationPolicy.trip(existing, wishlist, trip.getDays().size());
     Set<Long> all = new LinkedHashSet<>(existing); all.addAll(wishlist);
-    return queue(user, tripId, AiRequestType.TRIP_WISHLIST,
+    return queue(userId, tripId, AiRequestType.TRIP_WISHLIST,
         trip.getRegion().getSigunguCode(), trip.getStartDate(), trip.getEndDate(),
         trip.getCompanionType(), new ArrayList<>(trip.getThemes()), trip.getPace(),
         List.of(), wishlist, schedule, input.allowAdditional(), data.places(all));
@@ -107,12 +106,12 @@ public class AiRecommendationService {
         job.getExpiredAt(), preview == null ? null : preview.getSavedAt(), error);
   }
 
-  private User lockUserAndCheckQuota(Long userId) {
-    User user = users.findByIdForUpdate(userId).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+  private void lockUserAndCheckQuota(Long userId) {
+    users.validateActiveUser(userId);
     LocalDate koreaToday = LocalDate.now(clock.withZone(KOREA));
     LocalDateTime utcStart = koreaToday.atStartOfDay(KOREA).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
     if (jobs.countSince(userId, utcStart) >= 3) throw new BusinessException(ErrorCode.AI_DAILY_REQUEST_LIMIT_EXCEEDED);
-    return user;
+    return;
   }
 
   private void validateCommon(String region, LocalDate start, LocalDate end, List<TravelTheme> themes) {
@@ -121,7 +120,7 @@ public class AiRecommendationService {
     if (new HashSet<>(themes).size() != themes.size()) throw new BusinessException(ErrorCode.INVALID_REQUEST);
   }
 
-  private AiJobAcceptedResponse queue(User user, Long tripId, AiRequestType type, String region,
+  private AiJobAcceptedResponse queue(Long uid, Long tripId, AiRequestType type, String region,
       LocalDate start, LocalDate end, com.travelbird.trip.entity.CompanionType companion,
       List<TravelTheme> themes, com.travelbird.trip.entity.Pace pace, List<Long> saved,
       List<Long> wishlist, List<ExistingScheduleDay> schedule, boolean additional, List<Place> places) {
@@ -134,7 +133,7 @@ public class AiRecommendationService {
     var request = new RecommendationJobRequest(id, type, region, start, end, companion,
         normalizedThemes, pace, normalizedSaved, normalizedWishlist, normalizedSchedule, additional);
     LocalDateTime now = LocalDateTime.now(clock);
-    jobs.save(AiRecommendationJob.queued(id, user, tripId, type, region, start, end, companion, pace,
+    jobs.save(AiRecommendationJob.queued(id, uid, tripId, type, region, start, end, companion, pace,
         snapshots.write(normalizedThemes), snapshots.write(normalizedSaved),
         snapshots.write(normalizedWishlist), snapshots.write(normalizedSchedule), additional, now));
     var sync = new PlaceSyncRequest(places.stream().map(this::syncItem).toList());
@@ -155,3 +154,6 @@ public class AiRecommendationService {
     return id;
   }
 }
+
+
+

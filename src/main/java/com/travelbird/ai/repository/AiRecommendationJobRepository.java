@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 public interface AiRecommendationJobRepository extends JpaRepository<AiRecommendationJob, Long> {
-  @Query("select count(j) from AiRecommendationJob j where j.user.id=:userId and j.requestedAt>=:from")
+  @Query("select count(j) from AiRecommendationJob j where j.userId=:userId and j.requestedAt>=:from")
   long countSince(@Param("userId") Long userId, @Param("from") LocalDateTime from);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -17,4 +17,7 @@ public interface AiRecommendationJobRepository extends JpaRepository<AiRecommend
 
   List<AiRecommendationJob> findByStatusAndStartedAtLessThanEqual(
       BackendAiJobStatus status, LocalDateTime threshold);
+
+  List<AiRecommendationJob> findAllByUserId(Long userId);
 }
+
