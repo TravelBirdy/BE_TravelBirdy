@@ -1,4 +1,5 @@
 package com.travelbird.trip.service;
+import com.travelbird.common.enums.*;
 import static org.assertj.core.api.Assertions.*; import static org.mockito.Mockito.*;
 import com.travelbird.file.entity.*; import com.travelbird.file.storage.ObjectStorage; import com.travelbird.global.error.*; import com.travelbird.place.entity.Place; import com.travelbird.trip.dto.request.*; import com.travelbird.trip.entity.*; import java.time.*; import java.util.*; import org.junit.jupiter.api.Test;
 class TripSpecFindingTest {
@@ -8,3 +9,4 @@ class TripSpecFindingTest {
  @Test void cancelledListCategoryIsRejected(){assertThatThrownBy(()->TripListPolicy.validate(TripStatus.CANCELLED)).isInstanceOfSatisfying(BusinessException.class,e->assertThat(e.errorCode()).isEqualTo(ErrorCode.INVALID_REQUEST));}
  private void assertCode(org.assertj.core.api.ThrowableAssert.ThrowingCallable call,ErrorCode code){assertThatThrownBy(call).isInstanceOfSatisfying(BusinessException.class,e->assertThat(e.errorCode()).isEqualTo(code));}
 }
+

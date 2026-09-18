@@ -1,4 +1,5 @@
 package com.travelbird.ai.service;
+import com.travelbird.common.enums.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,3 +36,4 @@ public class RecommendationPayloadFingerprint {
     }
   }
 }
+

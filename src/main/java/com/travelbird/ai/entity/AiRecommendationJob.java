@@ -1,8 +1,8 @@
 package com.travelbird.ai.entity;
 
 import com.travelbird.global.error.AiJobFailureCode;
-import com.travelbird.trip.entity.CompanionType;
-import com.travelbird.trip.entity.Pace;
+import com.travelbird.common.enums.CompanionType;
+import com.travelbird.common.enums.Pace;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -47,4 +47,5 @@ public class AiRecommendationJob {
  public boolean ownedBy(Long uid){return java.util.Objects.equals(userId,uid);}
  private void require(BackendAiJobStatus expected){if(status!=expected)throw new IllegalStateException("Invalid AI job transition");}
 }
+
 

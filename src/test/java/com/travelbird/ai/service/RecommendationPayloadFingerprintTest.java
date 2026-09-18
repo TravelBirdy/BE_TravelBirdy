@@ -6,9 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelbird.ai.dto.internal.ExistingScheduleDay;
 import com.travelbird.ai.dto.internal.RecommendationJobRequest;
 import com.travelbird.ai.entity.AiRequestType;
-import com.travelbird.trip.entity.CompanionType;
-import com.travelbird.trip.entity.Pace;
-import com.travelbird.trip.entity.TravelTheme;
+import com.travelbird.common.enums.CompanionType;
+import com.travelbird.common.enums.Pace;
+import com.travelbird.common.enums.TravelTheme;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -37,3 +37,4 @@ class RecommendationPayloadFingerprintTest {
         themes, Pace.NORMAL, saved, List.of(11L, 10L), schedule, true);
   }
 }
+

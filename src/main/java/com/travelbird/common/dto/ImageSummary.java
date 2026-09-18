@@ -1,2 +1,3 @@
-package com.travelbird.trip.dto.response;
+package com.travelbird.common.dto;
 public record ImageSummary(Long fileId,String imageUrl) {}
+

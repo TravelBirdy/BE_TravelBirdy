@@ -1,4 +1,6 @@
 package com.travelbird.trip.mapper;
+import com.travelbird.common.dto.ImageSummary;
+import com.travelbird.common.enums.*;
 
 import com.travelbird.common.dto.RegionSummary;
 import com.travelbird.file.api.FileLinkService;
@@ -95,3 +97,4 @@ public class TripMapper {
         }).toList())).toList();
   }
 }
+

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelbird.ai.dto.internal.*;
 import com.travelbird.ai.entity.AiRecommendationJob;
-import com.travelbird.trip.entity.TravelTheme;
+import com.travelbird.common.enums.TravelTheme;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -26,3 +26,4 @@ public class RecommendationSnapshotCodec {
     } catch (JsonProcessingException e) { throw new IllegalStateException("Invalid stored AI snapshot", e); }
   }
 }
+

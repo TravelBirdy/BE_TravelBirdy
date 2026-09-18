@@ -1,4 +1,5 @@
 package com.travelbird.ai.client;
+import com.travelbird.common.enums.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,3 +53,4 @@ class AiRecommendationClientTest {
         List.of(TravelTheme.FOOD), Pace.NORMAL, List.of(), List.of(), List.of(), true);
   }
 }
+

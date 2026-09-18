@@ -1,4 +1,5 @@
 package com.travelbird.trip.dto.request;
+import com.travelbird.common.enums.*;
 import com.travelbird.trip.entity.*;
 import java.time.LocalDate;
 import java.util.List;
@@ -12,3 +13,4 @@ public class UpdateTripRequest {
  public boolean hasInvalidRequiredFields(){return version==null||(confirmPresent&&confirmDayRemoval==null)||(regionPresent&&regionCode==null);}
  public boolean routeChange(){return regionPresent||startPresent||endPresent;}
 }
+

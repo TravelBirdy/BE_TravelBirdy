@@ -1,9 +1,9 @@
 package com.travelbird.ai.dto.internal;
 
 import com.travelbird.ai.entity.AiRequestType;
-import com.travelbird.trip.entity.CompanionType;
-import com.travelbird.trip.entity.Pace;
-import com.travelbird.trip.entity.TravelTheme;
+import com.travelbird.common.enums.CompanionType;
+import com.travelbird.common.enums.Pace;
+import com.travelbird.common.enums.TravelTheme;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -18,3 +18,4 @@ public record RecommendationJobRequest(Long jobId, AiRequestType requestType, St
     existingSchedule = List.copyOf(existingSchedule);
   }
 }
+

@@ -1,4 +1,5 @@
 package com.travelbird.trip.api;
+import com.travelbird.common.enums.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,3 +39,5 @@ public interface TripPostReader {
       String memo,
       List<Long> imageFileIds) {}
 }
+
+

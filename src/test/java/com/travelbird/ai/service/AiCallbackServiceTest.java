@@ -1,4 +1,5 @@
 package com.travelbird.ai.service;
+import com.travelbird.common.enums.*;
 import static org.assertj.core.api.Assertions.assertThat;import static org.mockito.Mockito.*;
 import com.travelbird.ai.dto.internal.AiCallbackRequest;import com.travelbird.ai.entity.*;import com.travelbird.ai.repository.*;import com.travelbird.place.repository.PlaceRepository;import com.travelbird.trip.entity.*;import java.time.*;import java.util.*;import org.junit.jupiter.api.Test;
 class AiCallbackServiceTest {

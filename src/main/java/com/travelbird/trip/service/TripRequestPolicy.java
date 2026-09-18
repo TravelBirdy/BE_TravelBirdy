@@ -1,3 +1,4 @@
 package com.travelbird.trip.service;
-import com.travelbird.global.error.*; import com.travelbird.trip.entity.TravelTheme; import java.util.*;
+import com.travelbird.global.error.*; import com.travelbird.common.enums.TravelTheme; import java.util.*;
 public final class TripRequestPolicy {private TripRequestPolicy(){}public static Set<TravelTheme> validatedThemes(List<TravelTheme> themes){if(themes==null||themes.isEmpty())throw new BusinessException(ErrorCode.THEME_REQUIRED);if(themes.stream().anyMatch(Objects::isNull))throw new BusinessException(ErrorCode.INVALID_REQUEST);if(themes.size()>3)throw new BusinessException(ErrorCode.TOO_MANY_THEMES);if(new HashSet<>(themes).size()!=themes.size())throw new BusinessException(ErrorCode.INVALID_REQUEST);return new LinkedHashSet<>(themes);}public static Set<TravelTheme> validatedPatchThemes(List<TravelTheme> themes){if(themes==null)throw new BusinessException(ErrorCode.INVALID_REQUEST);return validatedThemes(themes);}}
+

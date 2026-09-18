@@ -26,3 +26,5 @@ public record HomePostCard(
 		boolean savedRoute
 ) {
 }
+
+

@@ -12,7 +12,7 @@ import com.travelbird.place.api.PlaceReader;
 import com.travelbird.place.api.SavedPlaceReader;
 import com.travelbird.region.api.RegionReader;
 import com.travelbird.post.api.PostRouteLockReader;
-import com.travelbird.trip.entity.TravelTheme;
+import com.travelbird.common.enums.TravelTheme;
 import com.travelbird.trip.repository.TripRepository;
 import com.travelbird.user.api.UserReader;
 import java.security.SecureRandom;
@@ -126,8 +126,8 @@ public class AiRecommendationService {
   }
 
   private AiJobAcceptedResponse queue(Long uid, Long tripId, AiRequestType type, String region,
-      LocalDate start, LocalDate end, com.travelbird.trip.entity.CompanionType companion,
-      List<TravelTheme> themes, com.travelbird.trip.entity.Pace pace, List<Long> saved,
+      LocalDate start, LocalDate end, com.travelbird.common.enums.CompanionType companion,
+      List<TravelTheme> themes, com.travelbird.common.enums.Pace pace, List<Long> saved,
       List<Long> wishlist, List<ExistingScheduleDay> schedule, boolean additional, List<PlaceContract> places) {
     long id = positiveId();
     List<TravelTheme> normalizedThemes = themes.stream().sorted().toList();
@@ -159,6 +159,7 @@ public class AiRecommendationService {
     return id;
   }
 }
+
 
 
 

@@ -1,4 +1,5 @@
 package com.travelbird.trip.entity;
+import com.travelbird.common.enums.*;
 
 import com.travelbird.global.error.*;
 
@@ -47,3 +48,4 @@ public class Trip {
   public void removePlace(int dayNumber,Long tripPlaceId){ensureMutable();var d=day(dayNumber);var p=d.getPlaces().stream().filter(x->Objects.equals(x.getId(),tripPlaceId)).findFirst().orElseThrow(()->new BusinessException(ErrorCode.PLACE_NOT_FOUND));d.remove(p);}
   public void reorder(int dayNumber,List<Long> ids){ensureMutable();var d=day(dayNumber);if(ids==null||ids.size()!=d.getPlaces().size()||new HashSet<>(ids).size()!=ids.size())throw new BusinessException(ErrorCode.INVALID_PLACE_ORDER_REQUEST);var byId=new HashMap<Long,TripPlace>();for(var p:d.getPlaces())byId.put(p.getId(),p);if(!byId.keySet().equals(new HashSet<>(ids)))throw new BusinessException(ErrorCode.TRIP_PLACE_DAY_MISMATCH);for(var p:d.getPlaces())p.changeOrder(p.getVisitOrder()+1000);d.getPlaces().clear();for(int i=0;i<ids.size();i++){var p=byId.get(ids.get(i));p.changeOrder(i+1);d.getPlaces().add(p);}}  public TripDay day(int number){return days.stream().filter(d->d.getDayNumber()==number).findFirst().orElseThrow(()->new BusinessException(ErrorCode.TRIP_DAY_NOT_FOUND));}
 }
+
