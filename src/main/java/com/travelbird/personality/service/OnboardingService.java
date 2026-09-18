@@ -21,7 +21,7 @@ import com.travelbird.personality.domain.PersonalityResultStatus;
 import com.travelbird.personality.domain.PersonalitySubmissionStatus;
 import com.travelbird.common.enums.PersonalityTrait;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.personality.repository.PersonalityAnswerRepository;
 import com.travelbird.personality.repository.PersonalityOptionRepository;
@@ -72,7 +72,7 @@ public class OnboardingService {
         getActiveUser(userId);
 
         PersonalityTest activeTest = personalityTestRepository.findByActiveTrue()
-                .orElseThrow(() -> new ApiException(ErrorCode.PERSONALITY_TEST_UNAVAILABLE));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PERSONALITY_TEST_UNAVAILABLE));
 
         List<PersonalityQuestion> questions = personalityQuestionRepository
                 .findByPersonalityTest_TestVersionOrderByQuestionOrderAsc(activeTest.getTestVersion());
@@ -105,18 +105,18 @@ public class OnboardingService {
 
         List<PersonalityAnswerRequest> answers = request == null ? null : request.answers();
         if (answers == null || answers.size() != 8) {
-            throw new ApiException(ErrorCode.INCOMPLETE_PERSONALITY_TEST);
+            throw new BusinessException(ErrorCode.INCOMPLETE_PERSONALITY_TEST);
         }
         Set<Long> questionIdsInRequest = answers.stream()
                 .map(PersonalityAnswerRequest::questionId)
                 .collect(Collectors.toSet());
         if (questionIdsInRequest.size() != 8) {
-            throw new ApiException(ErrorCode.DUPLICATED_PERSONALITY_ANSWER);
+            throw new BusinessException(ErrorCode.DUPLICATED_PERSONALITY_ANSWER);
         }
 
         PersonalityTest activeTest = personalityTestRepository.findByActiveTrue().orElse(null);
         if (activeTest == null || !activeTest.getTestVersion().equals(request.testVersion())) {
-            throw new ApiException(ErrorCode.PERSONALITY_TEST_VERSION_MISMATCH);
+            throw new BusinessException(ErrorCode.PERSONALITY_TEST_VERSION_MISMATCH);
         }
 
         List<PersonalityQuestion> questions = personalityQuestionRepository
@@ -124,7 +124,7 @@ public class OnboardingService {
         Map<Long, PersonalityQuestion> questionById = questions.stream()
                 .collect(Collectors.toMap(PersonalityQuestion::getQuestionId, q -> q));
         if (!questionById.keySet().equals(questionIdsInRequest)) {
-            throw new ApiException(ErrorCode.INVALID_PERSONALITY_OPTION);
+            throw new BusinessException(ErrorCode.INVALID_PERSONALITY_OPTION);
         }
 
         Map<Long, PersonalityOption> optionById = personalityOptionRepository
@@ -133,13 +133,13 @@ public class OnboardingService {
         for (PersonalityAnswerRequest answer : answers) {
             PersonalityOption option = optionById.get(answer.optionId());
             if (option == null || !option.getQuestion().getQuestionId().equals(answer.questionId())) {
-                throw new ApiException(ErrorCode.INVALID_PERSONALITY_OPTION);
+                throw new BusinessException(ErrorCode.INVALID_PERSONALITY_OPTION);
             }
         }
 
         Optional<PersonalitySubmission> existing = personalitySubmissionRepository.findByUser_UserId(userId);
         if (existing.isPresent() && existing.get().getStatus() == PersonalitySubmissionStatus.COMPLETED) {
-            throw new ApiException(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
+            throw new BusinessException(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
         }
 
         PersonalitySubmission submission;
@@ -151,7 +151,7 @@ public class OnboardingService {
                 submission = personalitySubmissionRepository.save(PersonalitySubmission.create(user, activeTest));
             } catch (DataIntegrityViolationException e) {
                 // user_id UNIQUE 제약: 동시에 두 번 제출된 경우 먼저 처리된 쪽이 이긴 것으로 본다.
-                throw new ApiException(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
+                throw new BusinessException(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
             }
         }
 
@@ -189,22 +189,22 @@ public class OnboardingService {
         User user = getActiveUser(userId);
 
         if (request == null || request.submissionId() == null) {
-            throw new ApiException(ErrorCode.PERSONALITY_SUBMISSION_ACCESS_DENIED);
+            throw new BusinessException(ErrorCode.PERSONALITY_SUBMISSION_ACCESS_DENIED);
         }
         PersonalitySubmission submission = personalitySubmissionRepository.findById(request.submissionId())
-                .orElseThrow(() -> new ApiException(ErrorCode.PERSONALITY_SUBMISSION_ACCESS_DENIED));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PERSONALITY_SUBMISSION_ACCESS_DENIED));
         if (!submission.getUser().getUserId().equals(userId)) {
-            throw new ApiException(ErrorCode.PERSONALITY_SUBMISSION_ACCESS_DENIED);
+            throw new BusinessException(ErrorCode.PERSONALITY_SUBMISSION_ACCESS_DENIED);
         }
 
         if (submission.getStatus() == PersonalitySubmissionStatus.COMPLETED) {
             if (submission.getTiedTraits() == null) {
-                throw new ApiException(ErrorCode.TIE_BREAKER_NOT_REQUIRED);
+                throw new BusinessException(ErrorCode.TIE_BREAKER_NOT_REQUIRED);
             }
-            throw new ApiException(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
+            throw new BusinessException(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
         }
         if (submission.getTiedTraits() == null || !submission.getTiedTraits().contains(request.selectedTrait())) {
-            throw new ApiException(ErrorCode.INVALID_TIE_BREAKER_SELECTION);
+            throw new BusinessException(ErrorCode.INVALID_TIE_BREAKER_SELECTION);
         }
 
         PersonalityProfiles.TraitProfile profile = PersonalityProfiles.TRAIT_PROFILES.get(request.selectedTrait());
@@ -218,9 +218,9 @@ public class OnboardingService {
 
     public PartnerBirdResponse getPartnerBird(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ApiException(ErrorCode.USER_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVE);
         }
 
         if (user.getBirdType() == null) {
@@ -233,9 +233,9 @@ public class OnboardingService {
 
     private User getActiveUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_ACTIVE));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_ACTIVE));
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ApiException(ErrorCode.USER_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVE);
         }
         return user;
     }

@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 import com.travelbird.user.domain.RefreshToken;
 import com.travelbird.user.domain.User;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.file.repository.FileAssetRepository;
 import com.travelbird.social.repository.FollowRepository;
@@ -57,8 +57,8 @@ class WithdrawalServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> withdrawalService.withdraw(1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_ACTIVE);
     }
 
@@ -67,8 +67,8 @@ class WithdrawalServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(existingUserWithStatus(UserStatus.SUSPENDED)));
 
         assertThatThrownBy(() -> withdrawalService.withdraw(1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_ACTIVE);
 
         verify(fileAssetRepository, never()).deleteAllByUserId(any());

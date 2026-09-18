@@ -15,7 +15,7 @@ import com.travelbird.social.domain.UserBlock;
 import com.travelbird.social.domain.UserBlockId;
 import com.travelbird.social.domain.FollowListType;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.social.repository.FollowRepository;
 import com.travelbird.social.repository.UserBlockRepository;
@@ -59,8 +59,8 @@ class SocialServiceTest {
     @Test
     void follow_self_throwsCannotFollowSelf() {
         assertThatThrownBy(() -> socialService.follow(1L, 1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.CANNOT_FOLLOW_SELF);
     }
 
@@ -70,8 +70,8 @@ class SocialServiceTest {
         when(userRepository.findById(2L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> socialService.follow(1L, 2L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }
 
@@ -82,8 +82,8 @@ class SocialServiceTest {
         when(userBlockRepository.existsEitherDirection(1L, 2L)).thenReturn(true);
 
         assertThatThrownBy(() -> socialService.follow(1L, 2L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.CANNOT_FOLLOW_BLOCKED_USER);
 
         verify(followRepository, never()).save(any());
@@ -125,8 +125,8 @@ class SocialServiceTest {
     @Test
     void block_self_throwsCannotBlockSelf() {
         assertThatThrownBy(() -> socialService.block(1L, 1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.CANNOT_BLOCK_SELF);
     }
 
@@ -136,8 +136,8 @@ class SocialServiceTest {
         when(userRepository.findById(2L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> socialService.block(1L, 2L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }
 
@@ -169,8 +169,8 @@ class SocialServiceTest {
     @Test
     void unblock_self_throwsCannotBlockSelf() {
         assertThatThrownBy(() -> socialService.unblock(1L, 1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.CANNOT_BLOCK_SELF);
     }
 
@@ -180,8 +180,8 @@ class SocialServiceTest {
         when(userRepository.existsById(2L)).thenReturn(false);
 
         assertThatThrownBy(() -> socialService.unblock(1L, 2L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }
 

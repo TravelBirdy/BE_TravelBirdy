@@ -19,7 +19,7 @@ import com.travelbird.user.domain.UserSocialAccount;
 import com.travelbird.user.domain.UserSocialAccountId;
 import com.travelbird.user.domain.UserRole;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.user.repository.RefreshTokenRepository;
 import com.travelbird.user.repository.UserRepository;
@@ -73,8 +73,8 @@ class AuthServiceTest {
     @Test
     void kakaoLogin_missingToken_throwsInvalidAuthRequest() {
         assertThatThrownBy(() -> authService.kakaoLogin(new KakaoLoginRequest(" ")))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_AUTH_REQUEST);
     }
 
@@ -104,8 +104,8 @@ class AuthServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(suspended));
 
         assertThatThrownBy(() -> authService.kakaoLogin(new KakaoLoginRequest("valid-token")))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_ACTIVE);
     }
 
@@ -120,8 +120,8 @@ class AuthServiceTest {
         when(refreshTokenRepository.findById(1L)).thenReturn(Optional.of(activeToken));
 
         assertThatThrownBy(() -> authService.kakaoLogin(new KakaoLoginRequest("valid-token")))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS);
 
         verify(refreshTokenRepository, never()).save(any());
@@ -135,16 +135,16 @@ class AuthServiceTest {
         String expiredToken = shortLivedJwtUtil.createRefreshToken(1L, UserRole.ROLE_USER);
 
         assertThatThrownBy(() -> serviceWithShortLivedTokens.refresh(new RefreshTokenRequest(expiredToken)))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.REFRESH_TOKEN_EXPIRED);
     }
 
     @Test
     void refresh_malformedToken_throwsInvalidRefreshToken() {
         assertThatThrownBy(() -> authService.refresh(new RefreshTokenRequest("not-a-jwt")))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_REFRESH_TOKEN);
     }
 
@@ -169,8 +169,8 @@ class AuthServiceTest {
         String tokenOwnedByAnotherUser = jwtUtil.createRefreshToken(1L, UserRole.ROLE_USER);
 
         assertThatThrownBy(() -> authService.logout(new RefreshTokenRequest(tokenOwnedByAnotherUser)))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.TOKEN_ACCESS_DENIED);
     }
 

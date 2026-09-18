@@ -12,7 +12,7 @@ import com.travelbird.user.domain.UserSocialAccount;
 import com.travelbird.user.domain.UserSocialAccountId;
 import com.travelbird.global.security.TokenType;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.user.repository.RefreshTokenRepository;
 import com.travelbird.user.repository.UserRepository;
@@ -58,7 +58,7 @@ public class AuthService {
 
     public KakaoLoginResponse kakaoLogin(KakaoLoginRequest request) {
         if (request == null || !StringUtils.hasText(request.kakaoAccessToken())) {
-            throw new ApiException(ErrorCode.INVALID_AUTH_REQUEST);
+            throw new BusinessException(ErrorCode.INVALID_AUTH_REQUEST);
         }
 
         KakaoUserInfo kakaoUserInfo = kakaoApiClient.getUserInfo(request.kakaoAccessToken());
@@ -74,16 +74,16 @@ public class AuthService {
             userSocialAccountRepository.save(UserSocialAccount.create(KAKAO_PROVIDER, providerUserId, user.getUserId()));
         } else {
             user = userRepository.findById(existingLink.get().getUserId())
-                    .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_ACTIVE));
+                    .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_ACTIVE));
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ApiException(ErrorCode.USER_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVE);
         }
 
         Optional<RefreshToken> existingToken = refreshTokenRepository.findById(user.getUserId());
         if (existingToken.isPresent() && existingToken.get().isActive()) {
-            throw new ApiException(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS);
+            throw new BusinessException(ErrorCode.ACTIVE_SESSION_ALREADY_EXISTS);
         }
 
         String accessToken = jwtUtil.createAccessToken(user.getUserId(), user.getRole());
@@ -105,40 +105,40 @@ public class AuthService {
 
     public TokenPair refresh(RefreshTokenRequest request) {
         if (request == null || !StringUtils.hasText(request.refreshToken())) {
-            throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
+            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         Claims claims;
         try {
             claims = jwtUtil.parseClaims(request.refreshToken());
         } catch (ExpiredJwtException e) {
-            throw new ApiException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+            throw new BusinessException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         } catch (JwtException | IllegalArgumentException e) {
-            throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
+            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         if (!TokenType.REFRESH.name().equals(claims.get("tokenType", String.class))) {
-            throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
+            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         Long userId = claims.get("userId", Long.class);
         RefreshToken stored = refreshTokenRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_REFRESH_TOKEN));
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
 
         if (stored.getRevokedAt() != null) {
-            throw new ApiException(ErrorCode.REFRESH_TOKEN_REVOKED);
+            throw new BusinessException(ErrorCode.REFRESH_TOKEN_REVOKED);
         }
         if (!stored.getExpiresAt().isAfter(LocalDateTime.now())) {
-            throw new ApiException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+            throw new BusinessException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }
         if (!BCrypt.checkpw(request.refreshToken(), stored.getTokenHash())) {
-            throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN);
+            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_ACTIVE));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_ACTIVE));
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ApiException(ErrorCode.USER_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVE);
         }
 
         String newAccessToken = jwtUtil.createAccessToken(userId, user.getRole());
@@ -157,19 +157,19 @@ public class AuthService {
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
         if (request == null || !StringUtils.hasText(request.refreshToken())) {
-            throw new ApiException(ErrorCode.TOKEN_ACCESS_DENIED);
+            throw new BusinessException(ErrorCode.TOKEN_ACCESS_DENIED);
         }
 
         Claims claims;
         try {
             claims = parseClaimsAllowExpired(request.refreshToken());
         } catch (JwtException | IllegalArgumentException e) {
-            throw new ApiException(ErrorCode.TOKEN_ACCESS_DENIED);
+            throw new BusinessException(ErrorCode.TOKEN_ACCESS_DENIED);
         }
 
         Long ownerUserId = claims.get("userId", Long.class);
         if (!Objects.equals(ownerUserId, currentUserId)) {
-            throw new ApiException(ErrorCode.TOKEN_ACCESS_DENIED);
+            throw new BusinessException(ErrorCode.TOKEN_ACCESS_DENIED);
         }
 
         refreshTokenRepository.findById(currentUserId).ifPresent(RefreshToken::revoke);

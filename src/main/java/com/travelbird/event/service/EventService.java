@@ -6,7 +6,7 @@ import com.travelbird.event.dto.response.EventResponse;
 import com.travelbird.common.dto.RegionSummary;
 import com.travelbird.event.domain.Event;
 import com.travelbird.event.domain.EventStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.event.repository.EventRepository;
 import java.time.LocalDate;
@@ -57,11 +57,11 @@ public class EventService {
 
     public EventResponse getEvent(Long eventId) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ApiException(ErrorCode.EVENT_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.EVENT_NOT_FOUND));
         LocalDate today = LocalDate.now();
         if (event.getEndDate().isBefore(today)) {
             // 종료된 축제는 목록과 마찬가지로 상세에서도 노출하지 않는다 (기능명세서 3.17.1).
-            throw new ApiException(ErrorCode.EVENT_NOT_FOUND);
+            throw new BusinessException(ErrorCode.EVENT_NOT_FOUND);
         }
         RegionSummary region = regionReader.getRegion(event.getSigunguCode());
         return toResponse(event, today, Map.of(event.getSigunguCode(), region));

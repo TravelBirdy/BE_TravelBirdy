@@ -18,7 +18,7 @@ import com.travelbird.common.enums.BirdType;
 import com.travelbird.personality.domain.PersonalitySubmissionStatus;
 import com.travelbird.common.enums.PersonalityTrait;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.personality.repository.PersonalityAnswerRepository;
 import com.travelbird.personality.repository.PersonalityOptionRepository;
@@ -88,8 +88,8 @@ class OnboardingServiceTest {
         when(personalityTestRepository.findByActiveTrue()).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> onboardingService.getPersonalityTest(1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PERSONALITY_TEST_UNAVAILABLE);
     }
 
@@ -98,8 +98,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTestSubmissionRequest("v1", List.of(new PersonalityAnswerRequest(1L, 101L)));
 
         assertThatThrownBy(() -> onboardingService.submitPersonalityTest(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INCOMPLETE_PERSONALITY_TEST);
     }
 
@@ -113,8 +113,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTestSubmissionRequest("v1", answers);
 
         assertThatThrownBy(() -> onboardingService.submitPersonalityTest(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.DUPLICATED_PERSONALITY_ANSWER);
     }
 
@@ -123,8 +123,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTestSubmissionRequest("stale-version", optionAnswers());
 
         assertThatThrownBy(() -> onboardingService.submitPersonalityTest(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PERSONALITY_TEST_VERSION_MISMATCH);
     }
 
@@ -141,8 +141,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTestSubmissionRequest("v1", answers);
 
         assertThatThrownBy(() -> onboardingService.submitPersonalityTest(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_PERSONALITY_OPTION);
     }
 
@@ -194,8 +194,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTestSubmissionRequest("v1", optionAnswers());
 
         assertThatThrownBy(() -> onboardingService.submitPersonalityTest(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
     }
 
@@ -210,8 +210,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTestSubmissionRequest("v1", optionAnswers());
 
         assertThatThrownBy(() -> onboardingService.submitPersonalityTest(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
     }
 
@@ -228,8 +228,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTieBreakerRequest(55L, PersonalityTrait.REST);
 
         assertThatThrownBy(() -> onboardingService.submitTieBreaker(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PERSONALITY_SUBMISSION_ACCESS_DENIED);
     }
 
@@ -244,8 +244,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTieBreakerRequest(55L, PersonalityTrait.CULTURE);
 
         assertThatThrownBy(() -> onboardingService.submitTieBreaker(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_TIE_BREAKER_SELECTION);
     }
 
@@ -279,8 +279,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTieBreakerRequest(55L, PersonalityTrait.ACTIVITY);
 
         assertThatThrownBy(() -> onboardingService.submitTieBreaker(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PERSONALITY_TEST_ALREADY_COMPLETED);
     }
 
@@ -295,8 +295,8 @@ class OnboardingServiceTest {
         var request = new PersonalityTieBreakerRequest(55L, PersonalityTrait.REST);
 
         assertThatThrownBy(() -> onboardingService.submitTieBreaker(1L, request))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.TIE_BREAKER_NOT_REQUIRED);
     }
 
@@ -326,8 +326,8 @@ class OnboardingServiceTest {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> onboardingService.getPartnerBird(99L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }
 
@@ -336,8 +336,8 @@ class OnboardingServiceTest {
         ReflectionTestUtils.setField(activeUser, "status", UserStatus.SUSPENDED);
 
         assertThatThrownBy(() -> onboardingService.getPartnerBird(1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_ACTIVE);
     }
 

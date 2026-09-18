@@ -5,7 +5,7 @@ import com.travelbird.mypage.dto.response.MyPageResponse;
 import com.travelbird.mypage.dto.response.MyPageStatistics;
 import com.travelbird.user.domain.User;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.social.repository.FollowRepository;
 import com.travelbird.user.repository.UserRepository;
@@ -32,9 +32,9 @@ public class MyPageService {
 
     public MyPageResponse getMyPage(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_ACTIVE));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_ACTIVE));
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ApiException(ErrorCode.USER_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVE);
         }
 
         long followerCount = followRepository.countByFollowing_UserId(userId);

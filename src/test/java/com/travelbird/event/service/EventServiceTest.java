@@ -12,7 +12,7 @@ import com.travelbird.common.dto.RegionSummary;
 import com.travelbird.common.service.RegionReader;
 import com.travelbird.event.domain.Event;
 import com.travelbird.event.domain.EventStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.event.repository.EventRepository;
 import java.lang.reflect.Constructor;
@@ -68,8 +68,8 @@ class EventServiceTest {
         when(eventRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> eventService.getEvent(99L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.EVENT_NOT_FOUND);
     }
 
@@ -79,8 +79,8 @@ class EventServiceTest {
         when(eventRepository.findById(1L)).thenReturn(Optional.of(ended));
 
         assertThatThrownBy(() -> eventService.getEvent(1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.EVENT_NOT_FOUND);
     }
 

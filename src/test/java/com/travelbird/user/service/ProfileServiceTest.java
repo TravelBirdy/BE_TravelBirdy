@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import com.travelbird.user.dto.request.UpdateProfileRequest;
 import com.travelbird.user.domain.User;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.user.repository.UserRepository;
 import java.util.Optional;
@@ -41,8 +41,8 @@ class ProfileServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> profileService.getProfile(1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_FOUND);
     }
 
@@ -52,8 +52,8 @@ class ProfileServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
 
         assertThatThrownBy(() -> profileService.getProfile(1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_ACTIVE);
     }
 
@@ -74,8 +74,8 @@ class ProfileServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
 
         assertThatThrownBy(() -> profileService.updateProfile(1L, new UpdateProfileRequest(true, "a", false, null)))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_PROFILE_VALUE);
     }
 
@@ -84,8 +84,8 @@ class ProfileServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
 
         assertThatThrownBy(() -> profileService.updateProfile(1L, new UpdateProfileRequest(true, "12345678901", false, null)))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_PROFILE_VALUE);
     }
 
@@ -95,8 +95,8 @@ class ProfileServiceTest {
         String tooLong = "a".repeat(101);
 
         assertThatThrownBy(() -> profileService.updateProfile(1L, new UpdateProfileRequest(false, null, true, tooLong)))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_PROFILE_VALUE);
     }
 

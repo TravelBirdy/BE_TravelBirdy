@@ -13,7 +13,7 @@ import com.travelbird.social.domain.UserBlockId;
 import com.travelbird.social.domain.FollowListType;
 import com.travelbird.common.enums.PersonalityTrait;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.social.repository.FollowRepository;
 import com.travelbird.social.repository.UserBlockRepository;
@@ -51,14 +51,14 @@ public class SocialService {
 
     public void follow(Long currentUserId, Long targetUserId) {
         if (Objects.equals(currentUserId, targetUserId)) {
-            throw new ApiException(ErrorCode.CANNOT_FOLLOW_SELF);
+            throw new BusinessException(ErrorCode.CANNOT_FOLLOW_SELF);
         }
         User current = getActiveUser(currentUserId);
         User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         if (userBlockRepository.existsEitherDirection(currentUserId, targetUserId)) {
-            throw new ApiException(ErrorCode.CANNOT_FOLLOW_BLOCKED_USER);
+            throw new BusinessException(ErrorCode.CANNOT_FOLLOW_BLOCKED_USER);
         }
 
         if (followRepository.existsById(new FollowId(currentUserId, targetUserId))) {
@@ -95,11 +95,11 @@ public class SocialService {
 
     public void block(Long currentUserId, Long targetUserId) {
         if (Objects.equals(currentUserId, targetUserId)) {
-            throw new ApiException(ErrorCode.CANNOT_BLOCK_SELF);
+            throw new BusinessException(ErrorCode.CANNOT_BLOCK_SELF);
         }
         User current = getActiveUser(currentUserId);
         User target = userRepository.findById(targetUserId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         if (!userBlockRepository.existsById(new UserBlockId(currentUserId, targetUserId))) {
             userBlockRepository.save(UserBlock.create(current, target));
@@ -110,11 +110,11 @@ public class SocialService {
 
     public void unblock(Long currentUserId, Long targetUserId) {
         if (Objects.equals(currentUserId, targetUserId)) {
-            throw new ApiException(ErrorCode.CANNOT_BLOCK_SELF);
+            throw new BusinessException(ErrorCode.CANNOT_BLOCK_SELF);
         }
         getActiveUser(currentUserId);
         if (!userRepository.existsById(targetUserId)) {
-            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
         userBlockRepository.deleteByBlockerAndBlocked(currentUserId, targetUserId);
     }
@@ -162,9 +162,9 @@ public class SocialService {
 
     private User getActiveUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_ACTIVE));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_ACTIVE));
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ApiException(ErrorCode.USER_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVE);
         }
         return user;
     }

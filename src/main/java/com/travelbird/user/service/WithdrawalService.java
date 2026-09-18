@@ -2,7 +2,7 @@ package com.travelbird.user.service;
 
 import com.travelbird.user.domain.User;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.file.repository.FileAssetRepository;
 import com.travelbird.social.repository.FollowRepository;
@@ -47,13 +47,13 @@ public class WithdrawalService {
 
     public void withdraw(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_ACTIVE));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_ACTIVE));
 
         if (user.getStatus() == UserStatus.WITHDRAWN) {
             return;
         }
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ApiException(ErrorCode.USER_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVE);
         }
 
         // 1단계 — Part1 인증 차단 준비: 활성 Refresh Token 폐기

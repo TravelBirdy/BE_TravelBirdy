@@ -4,7 +4,7 @@ import com.travelbird.user.dto.response.ProfileResponse;
 import com.travelbird.user.dto.request.UpdateProfileRequest;
 import com.travelbird.user.domain.User;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -37,10 +37,10 @@ public class ProfileService {
         String introduction = introductionPresent ? request.introduction() : null;
 
         if (nickname != null && (nickname.length() < NICKNAME_MIN_LENGTH || nickname.length() > NICKNAME_MAX_LENGTH)) {
-            throw new ApiException(ErrorCode.INVALID_PROFILE_VALUE);
+            throw new BusinessException(ErrorCode.INVALID_PROFILE_VALUE);
         }
         if (introduction != null && introduction.length() > INTRODUCTION_MAX_LENGTH) {
-            throw new ApiException(ErrorCode.INVALID_PROFILE_VALUE);
+            throw new BusinessException(ErrorCode.INVALID_PROFILE_VALUE);
         }
 
         user.updateProfile(nicknamePresent, nickname, introductionPresent, introduction);
@@ -49,9 +49,9 @@ public class ProfileService {
 
     private User getActiveUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ApiException(ErrorCode.USER_NOT_ACTIVE);
+            throw new BusinessException(ErrorCode.USER_NOT_ACTIVE);
         }
         return user;
     }

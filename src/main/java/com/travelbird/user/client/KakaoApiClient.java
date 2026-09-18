@@ -1,6 +1,6 @@
 package com.travelbird.user.client;
 
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -36,21 +36,21 @@ public class KakaoApiClient {
                     .retrieve()
                     .onStatus(status -> status.value() == 401,
                             (req, res) -> {
-                                throw new ApiException(ErrorCode.KAKAO_AUTHENTICATION_FAILED);
+                                throw new BusinessException(ErrorCode.KAKAO_AUTHENTICATION_FAILED);
                             })
                     .onStatus(HttpStatusCode::isError,
                             (req, res) -> {
-                                throw new ApiException(ErrorCode.KAKAO_SERVICE_UNAVAILABLE);
+                                throw new BusinessException(ErrorCode.KAKAO_SERVICE_UNAVAILABLE);
                             })
                     .body(KakaoUserInfoResponse.class);
             if (response == null || response.id() == null) {
-                throw new ApiException(ErrorCode.KAKAO_AUTHENTICATION_FAILED);
+                throw new BusinessException(ErrorCode.KAKAO_AUTHENTICATION_FAILED);
             }
             return response.toKakaoUserInfo();
-        } catch (ApiException e) {
+        } catch (BusinessException e) {
             throw e;
         } catch (RestClientException e) {
-            throw new ApiException(ErrorCode.KAKAO_SERVICE_UNAVAILABLE);
+            throw new BusinessException(ErrorCode.KAKAO_SERVICE_UNAVAILABLE);
         }
     }
 }

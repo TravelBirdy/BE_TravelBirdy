@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import com.travelbird.user.domain.User;
 import com.travelbird.common.enums.BirdType;
 import com.travelbird.user.domain.UserStatus;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.social.repository.FollowRepository;
 import com.travelbird.user.repository.UserRepository;
@@ -48,8 +48,8 @@ class MyPageServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> myPageService.getMyPage(1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_ACTIVE);
     }
 
@@ -59,8 +59,8 @@ class MyPageServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
 
         assertThatThrownBy(() -> myPageService.getMyPage(1L))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).getErrorCode())
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_ACTIVE);
     }
 
