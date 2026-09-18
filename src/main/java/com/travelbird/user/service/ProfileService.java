@@ -31,8 +31,10 @@ public class ProfileService {
     public ProfileResponse updateProfile(Long userId, UpdateProfileRequest request) {
         User user = getActiveUser(userId);
 
-        String nickname = request == null ? null : request.nickname();
-        String introduction = request == null ? null : request.introduction();
+        boolean nicknamePresent = request != null && request.nicknamePresent();
+        String nickname = nicknamePresent ? request.nickname() : null;
+        boolean introductionPresent = request != null && request.introductionPresent();
+        String introduction = introductionPresent ? request.introduction() : null;
 
         if (nickname != null && (nickname.length() < NICKNAME_MIN_LENGTH || nickname.length() > NICKNAME_MAX_LENGTH)) {
             throw new ApiException(ErrorCode.INVALID_PROFILE_VALUE);
@@ -41,7 +43,7 @@ public class ProfileService {
             throw new ApiException(ErrorCode.INVALID_PROFILE_VALUE);
         }
 
-        user.updateProfile(nickname, introduction);
+        user.updateProfile(nicknamePresent, nickname, introductionPresent, introduction);
         return toResponse(user);
     }
 

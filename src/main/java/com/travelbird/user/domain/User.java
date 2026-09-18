@@ -71,11 +71,11 @@ public class User {
         return user;
     }
 
-    public void updateProfile(String nickname, String introduction) {
-        if (nickname != null) {
+    public void updateProfile(boolean nicknamePresent, String nickname, boolean introductionPresent, String introduction) {
+        if (nicknamePresent) {
             this.nickname = nickname;
         }
-        if (introduction != null) {
+        if (introductionPresent) {
             this.introduction = introduction;
         }
     }

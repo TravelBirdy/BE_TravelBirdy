@@ -73,7 +73,7 @@ class ProfileServiceTest {
     void updateProfile_nicknameTooShort_throwsInvalidProfileValue() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
 
-        assertThatThrownBy(() -> profileService.updateProfile(1L, new UpdateProfileRequest("a", null)))
+        assertThatThrownBy(() -> profileService.updateProfile(1L, new UpdateProfileRequest(true, "a", false, null)))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_PROFILE_VALUE);
@@ -83,7 +83,7 @@ class ProfileServiceTest {
     void updateProfile_nicknameTooLong_throwsInvalidProfileValue() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
 
-        assertThatThrownBy(() -> profileService.updateProfile(1L, new UpdateProfileRequest("12345678901", null)))
+        assertThatThrownBy(() -> profileService.updateProfile(1L, new UpdateProfileRequest(true, "12345678901", false, null)))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_PROFILE_VALUE);
@@ -94,7 +94,7 @@ class ProfileServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
         String tooLong = "a".repeat(101);
 
-        assertThatThrownBy(() -> profileService.updateProfile(1L, new UpdateProfileRequest(null, tooLong)))
+        assertThatThrownBy(() -> profileService.updateProfile(1L, new UpdateProfileRequest(false, null, true, tooLong)))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_PROFILE_VALUE);
@@ -105,7 +105,7 @@ class ProfileServiceTest {
         ReflectionTestUtils.setField(activeUser, "introduction", "기존 소개");
         when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
 
-        var response = profileService.updateProfile(1L, new UpdateProfileRequest("새닉네임", null));
+        var response = profileService.updateProfile(1L, new UpdateProfileRequest(true, "새닉네임", false, null));
 
         assertThat(response.nickname()).isEqualTo("새닉네임");
         assertThat(response.introduction()).isEqualTo("기존 소개");
@@ -119,5 +119,25 @@ class ProfileServiceTest {
         var response = profileService.updateProfile(1L, null);
 
         assertThat(response.nickname()).isEqualTo("기존닉네임");
+    }
+
+    @Test
+    void updateProfile_fieldOmitted_leavesFieldUnchanged() {
+        ReflectionTestUtils.setField(activeUser, "introduction", "기존 소개");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
+
+        var response = profileService.updateProfile(1L, new UpdateProfileRequest(true, "새닉네임", false, null));
+
+        assertThat(response.introduction()).isEqualTo("기존 소개");
+    }
+
+    @Test
+    void updateProfile_fieldExplicitNull_clearsField() {
+        ReflectionTestUtils.setField(activeUser, "introduction", "기존 소개");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(activeUser));
+
+        var response = profileService.updateProfile(1L, new UpdateProfileRequest(false, null, true, null));
+
+        assertThat(response.introduction()).isNull();
     }
 }

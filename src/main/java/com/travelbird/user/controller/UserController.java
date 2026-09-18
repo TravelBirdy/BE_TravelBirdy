@@ -1,5 +1,6 @@
 package com.travelbird.user.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.travelbird.global.security.SecurityUtils;
 import com.travelbird.mypage.dto.response.MyPageResponse;
 import com.travelbird.mypage.service.MyPageService;
@@ -44,7 +45,13 @@ public class UserController {
     }
 
     @PatchMapping("/me/profile")
-    public ResponseEntity<ProfileResponse> updateProfile(@RequestBody(required = false) UpdateProfileRequest request) {
+    public ResponseEntity<ProfileResponse> updateProfile(@RequestBody(required = false) JsonNode body) {
+        boolean nicknamePresent = body != null && body.has("nickname");
+        String nickname = nicknamePresent && !body.get("nickname").isNull() ? body.get("nickname").asText() : null;
+        boolean introductionPresent = body != null && body.has("introduction");
+        String introduction = introductionPresent && !body.get("introduction").isNull() ? body.get("introduction").asText() : null;
+
+        UpdateProfileRequest request = new UpdateProfileRequest(nicknamePresent, nickname, introductionPresent, introduction);
         return ResponseEntity.ok(profileService.updateProfile(SecurityUtils.getCurrentUserId(), request));
     }
 
