@@ -1,6 +1,6 @@
 package com.travelbird.event.service;
 
-import com.travelbird.common.service.RegionReader;
+import com.travelbird.region.api.RegionReader;
 import com.travelbird.event.dto.response.EventListResponse;
 import com.travelbird.event.dto.response.EventResponse;
 import com.travelbird.common.dto.RegionSummary;
