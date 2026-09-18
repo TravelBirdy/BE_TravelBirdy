@@ -1,3 +1,3 @@
 package com.travelbird.trip.dto.response;
-import com.travelbird.region.dto.response.RegionSummary; import com.travelbird.trip.entity.*; import java.time.*; import java.util.*;
+import com.travelbird.common.dto.RegionSummary; import com.travelbird.trip.entity.*; import java.time.*; import java.util.*;
 public record TripResponse(Long tripId,AuthorSummary owner,String title,String summary,TripSourceType sourceType,TripStatus status,LocalDateTime cancelledAt,Visibility visibility,RegionSummary region,LocalDate startDate,LocalDate endDate,Pace pace,CompanionType companionType,Set<TravelTheme> themes,Set<String> hashtags,boolean routeEditable,String routeLockedReason,Long publishedPostId,boolean contentEditable,List<TripDayResponse> days) {}

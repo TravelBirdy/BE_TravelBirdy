@@ -1,3 +1,16 @@
 package com.travelbird.trip.service;
-import com.travelbird.file.entity.FileMetadata; import com.travelbird.file.storage.ObjectStorage; import com.travelbird.trip.dto.response.ImageSummary; import java.time.Duration;
-public final class TripImagePolicy {private static final Duration READ_EXPIRY=Duration.ofMinutes(10);private TripImagePolicy(){} public static void validateFileIds(java.util.List<Long> ids){if(ids==null||ids.stream().anyMatch(java.util.Objects::isNull))throw new com.travelbird.global.error.BusinessException(com.travelbird.global.error.ErrorCode.INVALID_REQUEST);} public static ImageSummary linkAndSummarize(FileMetadata file,ObjectStorage storage){file.link();return summarize(file,storage);} public static ImageSummary summarize(FileMetadata file,ObjectStorage storage){return new ImageSummary(file.getId(),storage.presignGet(file.objectKey(),READ_EXPIRY).toString());}}
+
+import com.travelbird.global.error.BusinessException;
+import com.travelbird.global.error.ErrorCode;
+import java.util.List;
+import java.util.Objects;
+
+public final class TripImagePolicy {
+  private TripImagePolicy() {}
+
+  public static void validateFileIds(List<Long> fileIds) {
+    if (fileIds == null || fileIds.stream().anyMatch(Objects::isNull)) {
+      throw new BusinessException(ErrorCode.INVALID_REQUEST);
+    }
+  }
+}

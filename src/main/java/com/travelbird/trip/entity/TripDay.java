@@ -12,7 +12,7 @@ public class TripDay {
   @Column(name="day_number", nullable=false) private int dayNumber;
   @OneToMany(mappedBy="day", cascade=CascadeType.ALL, orphanRemoval=true) @OrderBy("visitOrder") private List<TripPlace> places=new ArrayList<>();
   TripDay(Trip trip,int dayNumber){this.trip=trip;this.dayNumber=dayNumber;}
-  TripPlace addPlace(com.travelbird.place.entity.Place place,int order){var p=TripPlace.create(trip,this,place,order);places.add(p);return p;}
+  TripPlace addPlace(Long placeId,int order){var p=TripPlace.create(trip,this,placeId,order);places.add(p);return p;}
   void remove(TripPlace place){places.remove(place);}
   void normalize(){for(int i=0;i<places.size();i++) places.get(i).changeOrder(i+1);}
 }

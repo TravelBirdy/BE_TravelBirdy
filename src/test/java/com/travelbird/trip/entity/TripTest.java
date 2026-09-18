@@ -5,12 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
-import com.travelbird.place.entity.Place;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
-import static org.mockito.Mockito.*;
 
 class TripTest {
   @Test
@@ -27,11 +25,9 @@ class TripTest {
   void samePlaceCannotExistTwiceAcrossTripDays() {
     var trip = Trip.createManual(null, null, LocalDate.of(2026, 9, 8), LocalDate.of(2026, 9, 9),
         CompanionType.SOLO, Set.of(TravelTheme.NATURE), Pace.RELAXED, LocalDateTime.of(2026, 9, 1, 0, 0));
-    Place place = mock(Place.class);
-    when(place.getId()).thenReturn(44L);
-    trip.addPlace(1, place, 44L);
+    trip.addPlace(1, 44L);
 
-    assertThatThrownBy(() -> trip.addPlace(2, null, 44L))
+    assertThatThrownBy(() -> trip.addPlace(2, 44L))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode").isEqualTo(ErrorCode.PLACE_ALREADY_ADDED);
   }
@@ -49,9 +45,8 @@ class TripTest {
   @Test
   void sixteenthPlaceInOneDayIsRejected() {
     var trip = Trip.createManual(null, null, LocalDate.of(2026, 9, 8), LocalDate.of(2026, 9, 8), CompanionType.SOLO, Set.of(TravelTheme.NATURE), Pace.NORMAL, LocalDateTime.now());
-    for (long id = 1; id <= 15; id++) { Place place = mock(Place.class); when(place.getId()).thenReturn(id); trip.addPlace(1, place, id); }
-    Place extra = mock(Place.class); when(extra.getId()).thenReturn(16L);
-    assertThatThrownBy(() -> trip.addPlace(1, extra, 16L)).isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.TRIP_DAY_PLACE_LIMIT_EXCEEDED));
+    for (long id = 1; id <= 15; id++) trip.addPlace(1, id);
+    assertThatThrownBy(() -> trip.addPlace(1, 16L)).isInstanceOfSatisfying(BusinessException.class, e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.TRIP_DAY_PLACE_LIMIT_EXCEEDED));
   }  @Test void themesOnlyPatchDoesNotRequireCompanionOrPaceValues() {
     var trip=Trip.createManual(null,null,LocalDate.now(),LocalDate.now(),CompanionType.SOLO,Set.of(TravelTheme.FOOD),Pace.NORMAL,LocalDateTime.now());
     trip.updateBasic(null,false,null,false,null,false,Set.of(TravelTheme.NATURE),true,null,false,null,false);
