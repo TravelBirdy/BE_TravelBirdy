@@ -1,7 +1,7 @@
 package com.travelbird.region.service;
 
 import com.travelbird.common.dto.RegionSummary;
-import com.travelbird.global.error.ApiException;
+import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.region.api.RegionReader;
 import com.travelbird.region.domain.SigunguMaster;
@@ -25,7 +25,7 @@ public class RegionReaderImpl implements RegionReader {
     @Override
     public RegionSummary getRegion(String sigunguCode) {
         SigunguMaster sigunguMaster = sigunguMasterRepository.findById(sigunguCode)
-                .orElseThrow(() -> new ApiException(ErrorCode.REGION_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.REGION_NOT_FOUND));
         return toSummary(sigunguMaster);
     }
 
