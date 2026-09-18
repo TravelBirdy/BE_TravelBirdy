@@ -1,5 +1,6 @@
 package com.travelbird.event.service;
 
+import com.travelbird.common.service.RegionReader;
 import com.travelbird.event.dto.response.EventListResponse;
 import com.travelbird.event.dto.response.EventResponse;
 import com.travelbird.common.dto.RegionSummary;
@@ -66,7 +67,7 @@ public class EventService {
         return toResponse(event, today, Map.of(event.getSigunguCode(), region));
     }
 
-    List<EventResponse> getMonthlyEvents() {
+    public List<EventResponse> getMonthlyEvents() {
         LocalDate today = LocalDate.now();
         LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
         return getEvents(today, monthEnd, null, null, MAX_SIZE).items();

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.travelbird.common.dto.RegionSummary;
+import com.travelbird.common.service.RegionReader;
 import com.travelbird.event.domain.Event;
 import com.travelbird.event.domain.EventStatus;
 import com.travelbird.global.error.ApiException;
