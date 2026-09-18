@@ -103,7 +103,7 @@ class SavedPlaceControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].placeId").value(place.getPlaceId()))
                 .andExpect(jsonPath("$.items[0].memo").value("가보고 싶은 곳"))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.nextCursor").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test
@@ -147,8 +147,17 @@ class SavedPlaceControllerIntegrationTest {
 
     @Test
     void 저장취소는_저장돼있지_않아도_204다() throws Exception {
-        mockMvc.perform(delete("/api/users/me/saved-places/{placeId}", 999_999L))
+        Place place = persistPlace("저장 안 한 장소");
+
+        mockMvc.perform(delete("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void 존재하지_않는_장소의_저장취소는_404다() throws Exception {
+        mockMvc.perform(delete("/api/users/me/saved-places/{placeId}", 999_999L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PLACE_NOT_FOUND"));
     }
 
     @Test
@@ -164,6 +173,23 @@ class SavedPlaceControllerIntegrationTest {
 
         mockMvc.perform(get("/api/users/me/saved-places"))
                 .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void 저장한_장소의_메모수정은_200과_갱신된_메모를_반환한다() throws Exception {
+        Place place = persistPlace("장소");
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"memo\":\"첫 메모\"}"))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(patch("/api/users/me/saved-places/{placeId}/memo", place.getPlaceId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"memo\":\"바뀐 메모\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.placeId").value(place.getPlaceId()))
+                .andExpect(jsonPath("$.memo").value("바뀐 메모"))
+                .andExpect(jsonPath("$.updatedAt").exists());
     }
 
     @Test
@@ -194,7 +220,6 @@ class SavedPlaceControllerIntegrationTest {
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].placeId").value(place3.getPlaceId()))
                 .andExpect(jsonPath("$.items[1].placeId").value(place2.getPlaceId()))
-                .andExpect(jsonPath("$.hasNext").value(true))
                 .andExpect(jsonPath("$.nextCursor").value(place2.getPlaceId()));
 
         mockMvc.perform(get("/api/users/me/saved-places")
@@ -203,6 +228,23 @@ class SavedPlaceControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].placeId").value(place1.getPlaceId()))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.nextCursor").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void 사라진_커서로_조회하면_400_INVALID_CURSOR다() throws Exception {
+        Place place = persistPlace("장소");
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNoContent());
+        // 커서로 쓸 placeId를 저장 취소해서 그 사이 사라진 상황을 재현한다.
+        mockMvc.perform(delete("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/users/me/saved-places")
+                        .param("cursor", String.valueOf(place.getPlaceId())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_CURSOR"));
     }
 }

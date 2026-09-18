@@ -52,16 +52,24 @@ public class SavedPlaceService {
                 );
     }
 
-    /** 저장 취소는 멱등하다 — 저장돼 있지 않아도 에러 없이 끝난다. 메모도 행 삭제로 같이 지워진다. */
+    /**
+     * 저장 취소는 멱등하다 — 저장돼 있지 않아도 에러 없이 끝난다. 메모도 행 삭제로 같이
+     * 지워진다. 다만 장소 자체가 canonical하게 존재하지 않으면 404를 반환한다(기능명세 §3.6 —
+     * 저장/취소/메모 전부 canonical placeId만 입력받도록 규정).
+     */
     public void unsave(Long userId, Long placeId) {
+        if (!placeRepository.existsById(placeId)) {
+            throw new BusinessException(ErrorCode.PLACE_NOT_FOUND);
+        }
         savedPlaceRepository.deleteById(new SavedPlaceId(userId, placeId));
     }
 
-    public void updateMemo(Long userId, Long placeId, String memo) {
+    public SavedPlace updateMemo(Long userId, Long placeId, String memo) {
         validateMemoLength(memo);
         SavedPlace savedPlace = savedPlaceRepository.findById(new SavedPlaceId(userId, placeId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.SAVED_PLACE_NOT_FOUND));
         savedPlace.updateMemo(memo);
+        return savedPlace;
     }
 
     @Transactional(readOnly = true)
@@ -86,16 +94,20 @@ public class SavedPlaceService {
                 .toList();
 
         Long nextCursor = hasNext ? pageContent.get(pageContent.size() - 1).getId().getPlaceId() : null;
-        return new SavedPlaceCursorPageResponse(items, nextCursor, hasNext);
+        return new SavedPlaceCursorPageResponse(items, nextCursor);
     }
 
+    /**
+     * 커서로 받은 placeId의 저장 관계가 그 사이 취소되어 더 이상 없으면 {@code 400
+     * INVALID_CURSOR}를 던진다 — 조용히 빈 목록(+nextCursor: null)으로 처리하면 실제로는
+     * 남은 항목이 있는데도 클라이언트가 "마지막 페이지"로 착각해 데이터가 누락된다(chun9930
+     * 리뷰 반영, PR#9). 클라이언트는 이 에러를 받으면 첫 페이지부터 다시 조회해야 한다.
+     */
     private List<SavedPlace> findPageAfterCursor(Long userId, Long cursorPlaceId, Pageable pageable) {
-        // 커서로 받은 placeId가 그 사이 저장 취소되어 더 이상 없으면(드문 edge case) 더 볼
-        // 페이지가 없는 것으로 처리한다 — 스펙에 이 경우 동작이 명시돼 있지 않아 보수적으로 선택.
-        return savedPlaceRepository.findById(new SavedPlaceId(userId, cursorPlaceId))
-                .map(cursorRow -> savedPlaceRepository.findPageAfterCursor(
-                        userId, roundToStoredPrecision(cursorRow.getSavedAt()), cursorPlaceId, pageable))
-                .orElseGet(List::of);
+        SavedPlace cursorRow = savedPlaceRepository.findById(new SavedPlaceId(userId, cursorPlaceId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CURSOR));
+        return savedPlaceRepository.findPageAfterCursor(
+                userId, roundToStoredPrecision(cursorRow.getSavedAt()), cursorPlaceId, pageable);
     }
 
     /**

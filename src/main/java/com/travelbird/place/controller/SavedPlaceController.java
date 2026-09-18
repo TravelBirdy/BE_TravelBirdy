@@ -3,10 +3,11 @@ package com.travelbird.place.controller;
 import com.travelbird.global.security.SecurityUtils;
 import com.travelbird.place.controller.dto.SavePlaceRequest;
 import com.travelbird.place.controller.dto.SavedPlaceCursorPageResponse;
+import com.travelbird.place.controller.dto.SavedPlaceMemoResponse;
 import com.travelbird.place.controller.dto.UpdateSavedPlaceMemoRequest;
+import com.travelbird.place.domain.SavedPlace;
 import com.travelbird.place.service.SavedPlaceService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,11 +41,11 @@ public class SavedPlaceController {
     }
 
     @PatchMapping("/api/users/me/saved-places/{placeId}/memo")
-    public ResponseEntity<Void> updateMemo(@PathVariable Long placeId,
-                                            @RequestBody UpdateSavedPlaceMemoRequest request) {
+    public SavedPlaceMemoResponse updateMemo(@PathVariable Long placeId,
+                                              @RequestBody UpdateSavedPlaceMemoRequest request) {
         Long userId = SecurityUtils.getCurrentUserId();
-        savedPlaceService.updateMemo(userId, placeId, request.memo());
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        SavedPlace savedPlace = savedPlaceService.updateMemo(userId, placeId, request.memo());
+        return new SavedPlaceMemoResponse(placeId, savedPlace.getMemo(), savedPlace.getUpdatedAt());
     }
 
     @GetMapping("/api/users/me/saved-places")
