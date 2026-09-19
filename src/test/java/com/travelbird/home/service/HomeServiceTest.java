@@ -4,12 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import com.travelbird.event.service.EventService;
 import com.travelbird.home.dto.response.WeatherSummary;
 import com.travelbird.home.client.WeatherClient;
 import com.travelbird.home.domain.WeatherType;
 import java.math.BigDecimal;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,16 +18,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class HomeServiceTest {
 
     @Mock
-    private EventService eventService;
-    @Mock
     private WeatherClient weatherClient;
 
     private HomeService homeService;
 
     @BeforeEach
     void setUp() {
-        homeService = new HomeService(eventService, weatherClient);
-        when(eventService.getMonthlyEvents()).thenReturn(List.of());
+        homeService = new HomeService(weatherClient);
     }
 
     @Test
@@ -65,7 +60,7 @@ class HomeServiceTest {
     }
 
     @Test
-    void getHome_placesAndPostsAlwaysUnavailable() {
+    void getHome_placesPostsAndEventsAlwaysUnavailable() {
         when(weatherClient.getWeather(eq(new BigDecimal("37.5665")), eq(new BigDecimal("126.9780")), eq("서울특별시")))
                 .thenReturn(new WeatherSummary(WeatherType.CLEAR, "맑음", "서울특별시"));
 
@@ -73,6 +68,7 @@ class HomeServiceTest {
 
         assertThat(response.recommendedPlaces()).isEmpty();
         assertThat(response.recommendedPosts()).isEmpty();
-        assertThat(response.unavailableSections()).contains("PLACES", "POSTS");
+        assertThat(response.monthlyEvents()).isEmpty();
+        assertThat(response.unavailableSections()).contains("PLACES", "POSTS", "EVENTS");
     }
 }
