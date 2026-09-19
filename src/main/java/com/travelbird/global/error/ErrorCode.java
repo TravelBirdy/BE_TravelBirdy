@@ -52,6 +52,11 @@ public enum ErrorCode {
     // Place 도메인 (Part3, PR#7)
     PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 장소입니다."),
 
+    // 저장 장소 (Part3, PR#9)
+    SAVED_PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "저장하지 않은 장소입니다."),
+    SAVED_PLACE_MEMO_TOO_LONG(HttpStatus.BAD_REQUEST, "메모는 최대 100자까지 입력할 수 있습니다."),
+    INVALID_CURSOR(HttpStatus.BAD_REQUEST, "유효하지 않은 커서입니다. 첫 페이지부터 다시 조회해주세요."),
+
     // 공통
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND"),
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "잘못된 요청입니다.");
