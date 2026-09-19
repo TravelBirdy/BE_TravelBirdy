@@ -8,4 +8,6 @@ import java.util.List;
 public interface PlaceRepository extends JpaRepository<Place, Long> {
 
     List<Place> findAllByPlaceIdIn(List<Long> placeIds);
+
+    List<Place> findAllBySigunguCode(String sigunguCode);
 }
