@@ -74,4 +74,43 @@ public class FileAsset {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    private FileAsset(User user, String fileName, String objectKey, String contentType, Long sizeBytes,
+                       Integer width, Integer height, FilePurpose purpose, LocalDateTime expiresAt) {
+        this.user = user;
+        this.fileName = fileName;
+        this.objectKey = objectKey;
+        this.contentType = contentType;
+        this.sizeBytes = sizeBytes;
+        this.width = width;
+        this.height = height;
+        this.purpose = purpose;
+        this.status = FileStatus.PENDING;
+        this.expiresAt = expiresAt;
+    }
+
+    /**
+     * Presigned URL 발급 시점에 {@link FileStatus#PENDING}으로 생성한다 (기능명세서 3.5.1).
+     */
+    public static FileAsset createPending(User user, String fileName, String objectKey, String contentType,
+                                           Long sizeBytes, Integer width, Integer height, FilePurpose purpose,
+                                           LocalDateTime expiresAt) {
+        return new FileAsset(user, fileName, objectKey, contentType, sizeBytes, width, height, purpose, expiresAt);
+    }
+
+    public boolean isOwnedBy(Long userId) {
+        return user.getUserId().equals(userId);
+    }
+
+    /**
+     * S3 실제 객체 검증(MIME/시그니처/용량/가로크기) 통과 후 호출한다. 이미 UPLOADED/LINKED면
+     * 아무것도 안 하는 멱등 처리(호출부에서 상태를 보고 판단).
+     */
+    public void markUploaded() {
+        this.status = FileStatus.UPLOADED;
+    }
+
+    public void markLinked() {
+        this.status = FileStatus.LINKED;
+    }
 }

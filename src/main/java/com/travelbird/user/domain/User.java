@@ -61,4 +61,36 @@ public class User {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public static User createFromKakao(String email) {
+        User user = new User();
+        user.email = email;
+        user.status = UserStatus.ACTIVE;
+        user.role = UserRole.ROLE_USER;
+        user.onboardingCompleted = false;
+        return user;
+    }
+
+    public void updateProfile(boolean nicknamePresent, String nickname, boolean introductionPresent, String introduction) {
+        if (nicknamePresent) {
+            this.nickname = nickname;
+        }
+        if (introductionPresent) {
+            this.introduction = introduction;
+        }
+    }
+
+    public void assignBirdType(BirdType birdType) {
+        this.birdType = birdType;
+        this.onboardingCompleted = true;
+    }
+
+    public void withdraw() {
+        this.email = null;
+        this.nickname = null;
+        this.introduction = null;
+        this.birdType = null;
+        this.onboardingCompleted = false;
+        this.status = UserStatus.WITHDRAWN;
+    }
 }

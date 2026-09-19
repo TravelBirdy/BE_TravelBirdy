@@ -19,4 +19,11 @@ public class UserSocialAccount {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    public static UserSocialAccount create(String provider, String providerUserId, Long userId) {
+        UserSocialAccount account = new UserSocialAccount();
+        account.id = new UserSocialAccountId(provider, providerUserId);
+        account.userId = userId;
+        return account;
+    }
 }
