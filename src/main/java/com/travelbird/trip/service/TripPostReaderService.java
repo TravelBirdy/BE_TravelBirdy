@@ -40,6 +40,14 @@ public class TripPostReaderService implements TripPostReader {
     validateOwner(requireTrip(tripId), userId);
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public List<Long> getTripIdsByUser(Long userId) {
+    return trips.findAllByUserId(userId).stream()
+        .map(Trip::getId)
+        .toList();
+  }
+
   private Trip requireTrip(Long tripId) {
     return trips.findById(tripId)
         .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_NOT_FOUND));

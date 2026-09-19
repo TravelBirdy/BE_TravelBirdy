@@ -14,6 +14,8 @@ public interface TripPostReader {
 
   void validateTripOwnership(Long userId, Long tripId);
 
+  List<Long> getTripIdsByUser(Long userId);
+
   /** 기존 소비자 호환용 별칭. */
   default void validateOwnedTrip(Long userId, Long tripId) {
     validateTripOwnership(userId, tripId);
