@@ -1,16 +1,11 @@
 package com.travelbird.mypage.service;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Component;
-
 /**
- * {@link UserContentStatisticsReader}의 임시 구현.
- * Part 3의 실제 Post/PhotoMap 도메인이 이 저장소에 merge되면 같은 인터페이스의
- * 실제 구현 Bean이 생기므로, {@link ConditionalOnMissingBean}으로 그 시점에
- * merge 순서와 무관하게 자동으로 이 Bean이 밀려나도록 한다.
+ * {@link UserContentStatisticsReader}의 임시 구현. Bean 등록은
+ * {@link UserContentStatisticsReaderConfig}에서 {@code @ConditionalOnMissingBean}으로
+ * 처리한다(이 클래스 자체를 {@code @Component}로 스캔하면 조건 평가가 신뢰할 수 없어서
+ * 별도 Config 클래스로 분리함).
  */
-@Component
-@ConditionalOnMissingBean(UserContentStatisticsReader.class)
 public class NoOpUserContentStatisticsReader implements UserContentStatisticsReader {
 
     @Override
