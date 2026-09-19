@@ -1,0 +1,8 @@
+package com.travelbird.trip.controller;
+import com.travelbird.common.enums.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post; import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*; import com.travelbird.global.error.GlobalExceptionHandler; import com.travelbird.trip.service.TripService; import org.junit.jupiter.api.*; import org.springframework.http.MediaType; import org.springframework.test.web.servlet.*; import org.springframework.test.web.servlet.setup.MockMvcBuilders; import static org.mockito.Mockito.*;
+class TripCreateDeserializationTest {private MockMvc mvc;@BeforeEach void setUp(){mvc=MockMvcBuilders.standaloneSetup(new TripController(mock(TripService.class))).setControllerAdvice(new GlobalExceptionHandler()).build();}
+ @Test void invalidCompanionLiteralUsesDedicatedCode() throws Exception {mvc.perform(post("/api/trips").contentType(MediaType.APPLICATION_JSON).content("{\"regionCode\":\"11110\",\"startDate\":\"2026-09-08\",\"endDate\":\"2026-09-09\",\"companionType\":\"NOPE\",\"themes\":[\"FOOD\"],\"pace\":\"NORMAL\"}")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_COMPANION_TYPE"));}
+ @Test void invalidPaceLiteralUsesDedicatedCode() throws Exception {mvc.perform(post("/api/trips").contentType(MediaType.APPLICATION_JSON).content("{\"regionCode\":\"11110\",\"startDate\":\"2026-09-08\",\"endDate\":\"2026-09-09\",\"companionType\":\"SOLO\",\"themes\":[\"FOOD\"],\"pace\":\"NOPE\"}")).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_TRIP_PACE"));}
+}
+

@@ -1,0 +1,23 @@
+package com.travelbird.global.error;
+
+/**
+ * AI Job status API의 error.code 진단값.
+ * ErrorResponse의 HTTP business error와 구분한다.
+ */
+public enum AiJobFailureCode {
+    AI_PLACE_SYNC_FAILED,
+    AI_CALLBACK_TIMEOUT,
+    AI_SERVICE_UNAVAILABLE,
+    INVALID_AI_RESPONSE,
+    AI_PLACE_NOT_FOUND,
+    AI_PLACE_ID_REQUIRED,
+    AI_PLACE_ORDER_INVALID,
+    AI_RECOMMENDATION_REASON_INVALID,
+    AI_RESULT_VALIDATION_FAILED,
+    PLACE_NOT_FOUND,
+    PLACE_REGION_MISMATCH,
+    CONFLICTING_PLACE_POLICY,
+    INVALID_REQUEST,
+    AI_JOB_ID_CONFLICT,
+    INVALID_INTERNAL_AI_KEY
+}
