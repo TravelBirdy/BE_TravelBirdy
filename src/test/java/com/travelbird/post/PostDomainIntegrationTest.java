@@ -1,6 +1,6 @@
 package com.travelbird.post;
 
-import com.travelbird.post.api.HomePostCard;
+import com.travelbird.post.api.CommunityPostCard;
 import com.travelbird.post.api.PostRouteLock;
 import com.travelbird.post.api.PostRouteLockReader;
 import com.travelbird.post.domain.Post;
@@ -193,7 +193,7 @@ class PostDomainIntegrationTest {
         postRepository.save(Post.create(tripId2, "비공개글", "본문", null, PostVisibility.PRIVATE, true));
         postRepository.save(Post.create(tripId3, "임시저장", null, null, PostVisibility.PRIVATE, false));
 
-        List<HomePostCard> cards = homePostReaderImpl.getHomeRecommendedPosts(10, null);
+        List<CommunityPostCard> cards = homePostReaderImpl.getHomeRecommendedPosts(10, null);
 
         assertThat(cards).hasSize(1);
         assertThat(cards.get(0).title()).isEqualTo("공개글");
