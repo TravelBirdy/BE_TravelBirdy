@@ -28,6 +28,12 @@ public class TripPostReaderService implements TripPostReader {
 
   @Override
   @Transactional(readOnly = true)
+  public TripPostSnapshot getTripForPost(Long tripId) {
+    return snapshot(requireTrip(tripId));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
   public List<TripPostPlaceSnapshot> getTripPlaceSnapshot(Long tripId) {
     return requireTrip(tripId).getDays().stream()
         .flatMap(day -> day.getPlaces().stream().map(place -> placeSnapshot(day.getDayNumber(), place)))

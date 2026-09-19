@@ -10,6 +10,8 @@ public interface TripPostReader {
 
   TripPostSnapshot getOwnedTripForPost(Long userId, Long tripId);
 
+  TripPostSnapshot getTripForPost(Long tripId);
+
   List<TripPostPlaceSnapshot> getTripPlaceSnapshot(Long tripId);
 
   void validateTripOwnership(Long userId, Long tripId);
