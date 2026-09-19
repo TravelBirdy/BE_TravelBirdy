@@ -16,7 +16,7 @@ public class PlaceController {
 
     @GetMapping("/api/places/{placeId}")
     public PlaceDetailResponse getPlace(@PathVariable Long placeId) {
-        Long viewerIdOrNull = SecurityUtils.getCurrentUserIdOrNull();
-        return placeDetailService.getPlaceDetail(placeId, viewerIdOrNull);
+        Long viewerId = SecurityUtils.getCurrentUserId();
+        return placeDetailService.getPlaceDetail(placeId, viewerId);
     }
 }
