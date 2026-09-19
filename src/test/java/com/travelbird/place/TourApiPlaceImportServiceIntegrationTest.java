@@ -1,5 +1,6 @@
 package com.travelbird.place;
 
+import com.travelbird.place.domain.Place;
 import com.travelbird.place.domain.PlaceCategoryMappingRule;
 import com.travelbird.place.repository.PlaceExternalIdRepository;
 import com.travelbird.place.repository.PlaceRepository;
@@ -105,6 +106,25 @@ class TourApiPlaceImportServiceIntegrationTest {
         assertThat(secondPlaceId).isEqualTo(firstPlaceId);
         assertThat(placeRepository.findAll()).hasSize(1);
         assertThat(placeExternalIdRepository.findAll()).hasSize(2);
+    }
+
+    @Test
+    void 고신뢰_후보가_2개면_병합하지_않고_새로_생성한다() {
+        // 이름/주소가 같은 기존 장소 2개를 서로 가까이(둘 다 새 row의 50m 이내) 미리 만들어둔다.
+        Place existingA = placeRepository.save(Place.createFromImport("중복이름", null, "관광",
+                com.travelbird.common.enums.PlaceCategory.ATTRACTION, "서울 종로구 사직로 161",
+                SIGUNGU_CODE, new BigDecimal("37.5796000"), new BigDecimal("126.9770000"), null));
+        Place existingB = placeRepository.save(Place.createFromImport("중복이름", null, "관광",
+                com.travelbird.common.enums.PlaceCategory.ATTRACTION, "서울 종로구 사직로 161",
+                SIGUNGU_CODE, new BigDecimal("37.5796200"), new BigDecimal("126.9770000"), null));
+
+        Long importedPlaceId = tourApiPlaceImportService.importPlaces(List.of(
+                row("300", "중복이름", "서울 종로구 사직로 161", new BigDecimal("37.5796100"), new BigDecimal("126.9770000"))
+        )).get(0).placeId();
+
+        assertThat(importedPlaceId).isNotEqualTo(existingA.getPlaceId());
+        assertThat(importedPlaceId).isNotEqualTo(existingB.getPlaceId());
+        assertThat(placeRepository.findAll()).hasSize(3);
     }
 
     @Test

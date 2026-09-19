@@ -64,17 +64,23 @@ public class TourApiPlaceImportService {
         return Optional.of(toMapping(row, placeId));
     }
 
+    /**
+     * 고신뢰 병합 후보(정규화 이름+주소 일치 AND 50m 이내)가 정확히 1개일 때만 그 placeId를
+     * 반환한다. 2개 이상이면 어느 쪽이 진짜인지 판단할 수 없어 잘못된 병합을 하느니 새 Place를
+     * 만드는 쪽을 택한다(chun9930 리뷰, PR#10 — {@code .findFirst()}로 아무거나 고르던 것 수정).
+     */
     private Optional<Long> findMergeCandidate(TourApiPlaceImportRow row) {
         String normalizedName = normalize(row.name());
         String normalizedAddress = normalize(row.address());
 
-        return placeRepository.findAllBySigunguCode(row.regionCode()).stream()
+        List<Place> candidates = placeRepository.findAllBySigunguCode(row.regionCode()).stream()
                 .filter(candidate -> normalize(candidate.getName()).equals(normalizedName))
                 .filter(candidate -> normalize(candidate.getAddress()).equals(normalizedAddress))
                 .filter(candidate -> distanceMeters(candidate.getLatitude(), candidate.getLongitude(),
                         row.latitude(), row.longitude()) <= MERGE_RADIUS_METERS)
-                .map(Place::getPlaceId)
-                .findFirst();
+                .toList();
+
+        return candidates.size() == 1 ? Optional.of(candidates.get(0).getPlaceId()) : Optional.empty();
     }
 
     private Place createNewPlace(TourApiPlaceImportRow row, PlaceCategory category) {
