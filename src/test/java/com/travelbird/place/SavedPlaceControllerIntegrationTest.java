@@ -94,33 +94,44 @@ class SavedPlaceControllerIntegrationTest {
     void 존재하는_장소를_저장하면_204를_반환하고_목록에_나타난다() throws Exception {
         Place place = persistPlace("경복궁");
 
-        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"memo\":\"가보고 싶은 곳\"}"))
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/users/me/saved-places"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].placeId").value(place.getPlaceId()))
-                .andExpect(jsonPath("$.items[0].memo").value("가보고 싶은 곳"))
+                .andExpect(jsonPath("$.items[0].memo").value(org.hamcrest.Matchers.nullValue()))
                 .andExpect(jsonPath("$.nextCursor").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test
     void 존재하지_않는_장소_저장은_404다() throws Exception {
-        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", 999_999L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", 999_999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PLACE_NOT_FOUND"));
     }
 
     @Test
-    void memo가_100자를_넘으면_400이다() throws Exception {
+    void 저장_시점에는_memo를_받지_않는다() throws Exception {
+        // 기능명세 §3.6.3: 저장 시점에 memo를 받지 않는다 — PUT 요청 바디에 아무거나 보내도
+        // 무시되고(요청 바디 자체가 없다) memo는 항상 null로 저장된다.
         Place place = persistPlace("장소");
+
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/users/me/saved-places"))
+                .andExpect(jsonPath("$.items[0].memo").value(org.hamcrest.Matchers.nullValue()));
+    }
+
+    @Test
+    void memo가_100자를_넘으면_메모수정에서_400이다() throws Exception {
+        Place place = persistPlace("장소");
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
+                .andExpect(status().isNoContent());
         String longMemo = "가".repeat(101);
 
-        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId())
+        mockMvc.perform(patch("/api/users/me/saved-places/{placeId}/memo", place.getPlaceId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"memo\":\"" + longMemo + "\"}"))
                 .andExpect(status().isBadRequest())
@@ -128,21 +139,33 @@ class SavedPlaceControllerIntegrationTest {
     }
 
     @Test
-    void 같은_장소를_두번_저장해도_멱등하고_메모만_갱신된다() throws Exception {
+    void 같은_장소를_두번_저장해도_멱등하고_중복행이_생기지_않는다() throws Exception {
         Place place = persistPlace("장소");
 
-        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"memo\":\"첫 메모\"}"))
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
                 .andExpect(status().isNoContent());
-        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"memo\":\"수정된 메모\"}"))
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/users/me/saved-places"))
-                .andExpect(jsonPath("$.items.length()").value(1))
-                .andExpect(jsonPath("$.items[0].memo").value("수정된 메모"));
+                .andExpect(jsonPath("$.items.length()").value(1));
+    }
+
+    @Test
+    void 저장된_장소를_다시_저장해도_기존_메모는_보존된다() throws Exception {
+        Place place = persistPlace("장소");
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(patch("/api/users/me/saved-places/{placeId}/memo", place.getPlaceId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"memo\":\"기존 메모\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/users/me/saved-places"))
+                .andExpect(jsonPath("$.items[0].memo").value("기존 메모"));
     }
 
     @Test
@@ -163,10 +186,12 @@ class SavedPlaceControllerIntegrationTest {
     @Test
     void 저장취소_후_메모도_같이_사라진다() throws Exception {
         Place place = persistPlace("장소");
-        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId())
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(patch("/api/users/me/saved-places/{placeId}/memo", place.getPlaceId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"memo\":\"메모\"}"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
 
         mockMvc.perform(delete("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
                 .andExpect(status().isNoContent());
@@ -178,9 +203,7 @@ class SavedPlaceControllerIntegrationTest {
     @Test
     void 저장한_장소의_메모수정은_200과_갱신된_메모를_반환한다() throws Exception {
         Place place = persistPlace("장소");
-        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"memo\":\"첫 메모\"}"))
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(patch("/api/users/me/saved-places/{placeId}/memo", place.getPlaceId())
@@ -209,9 +232,7 @@ class SavedPlaceControllerIntegrationTest {
         Place place2 = persistPlace("장소2");
         Place place3 = persistPlace("장소3");
         for (Place p : List.of(place1, place2, place3)) {
-            mockMvc.perform(put("/api/users/me/saved-places/{placeId}", p.getPlaceId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{}"))
+            mockMvc.perform(put("/api/users/me/saved-places/{placeId}", p.getPlaceId()))
                     .andExpect(status().isNoContent());
         }
 
@@ -234,9 +255,7 @@ class SavedPlaceControllerIntegrationTest {
     @Test
     void 사라진_커서로_조회하면_400_INVALID_CURSOR다() throws Exception {
         Place place = persistPlace("장소");
-        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
+        mockMvc.perform(put("/api/users/me/saved-places/{placeId}", place.getPlaceId()))
                 .andExpect(status().isNoContent());
         // 커서로 쓸 placeId를 저장 취소해서 그 사이 사라진 상황을 재현한다.
         mockMvc.perform(delete("/api/users/me/saved-places/{placeId}", place.getPlaceId()))

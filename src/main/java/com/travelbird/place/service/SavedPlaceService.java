@@ -38,18 +38,20 @@ public class SavedPlaceService {
     private final SavedPlaceRepository savedPlaceRepository;
     private final PlaceRepository placeRepository;
 
-    /** 저장/메모 갱신을 멱등하게 처리한다 — 이미 저장돼 있으면 memo만 갱신한다. */
-    public void save(Long userId, Long placeId, String memo) {
+    /**
+     * 저장은 멱등하다 — 이미 저장돼 있으면 그대로 둔다(기존 memo 보존). 기능명세 §3.6.3은
+     * 저장 시점에 memo를 받지 않는다 — memo는 저장 후 {@link #updateMemo}로만 넣는다
+     * (oriole0419 리뷰, PR#9).
+     */
+    public void save(Long userId, Long placeId) {
         if (!placeRepository.existsById(placeId)) {
             throw new BusinessException(ErrorCode.PLACE_NOT_FOUND);
         }
-        validateMemoLength(memo);
 
-        savedPlaceRepository.findById(new SavedPlaceId(userId, placeId))
-                .ifPresentOrElse(
-                        existing -> existing.updateMemo(memo),
-                        () -> savedPlaceRepository.save(SavedPlace.of(userId, placeId, memo))
-                );
+        SavedPlaceId id = new SavedPlaceId(userId, placeId);
+        if (!savedPlaceRepository.existsById(id)) {
+            savedPlaceRepository.save(SavedPlace.of(userId, placeId, null));
+        }
     }
 
     /**

@@ -1,7 +1,6 @@
 package com.travelbird.place.controller;
 
 import com.travelbird.global.security.SecurityUtils;
-import com.travelbird.place.controller.dto.SavePlaceRequest;
 import com.travelbird.place.controller.dto.SavedPlaceCursorPageResponse;
 import com.travelbird.place.controller.dto.SavedPlaceMemoResponse;
 import com.travelbird.place.controller.dto.UpdateSavedPlaceMemoRequest;
@@ -25,11 +24,9 @@ public class SavedPlaceController {
     private final SavedPlaceService savedPlaceService;
 
     @PutMapping("/api/users/me/saved-places/{placeId}")
-    public ResponseEntity<Void> save(@PathVariable Long placeId,
-                                      @RequestBody(required = false) SavePlaceRequest request) {
+    public ResponseEntity<Void> save(@PathVariable Long placeId) {
         Long userId = SecurityUtils.getCurrentUserId();
-        String memo = request == null ? null : request.memo();
-        savedPlaceService.save(userId, placeId, memo);
+        savedPlaceService.save(userId, placeId);
         return ResponseEntity.noContent().build();
     }
 
