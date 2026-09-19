@@ -35,4 +35,26 @@ public class RefreshToken {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public static RefreshToken issue(Long userId, String tokenHash, LocalDateTime expiresAt) {
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.userId = userId;
+        refreshToken.tokenHash = tokenHash;
+        refreshToken.expiresAt = expiresAt;
+        return refreshToken;
+    }
+
+    public void rotate(String tokenHash, LocalDateTime expiresAt) {
+        this.tokenHash = tokenHash;
+        this.expiresAt = expiresAt;
+        this.revokedAt = null;
+    }
+
+    public void revoke() {
+        this.revokedAt = LocalDateTime.now();
+    }
+
+    public boolean isActive() {
+        return revokedAt == null && expiresAt.isAfter(LocalDateTime.now());
+    }
 }

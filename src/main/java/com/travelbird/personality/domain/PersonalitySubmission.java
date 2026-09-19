@@ -18,6 +18,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -88,4 +89,50 @@ public class PersonalitySubmission {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    public static PersonalitySubmission create(User user, PersonalityTest personalityTest) {
+        PersonalitySubmission submission = new PersonalitySubmission();
+        submission.user = user;
+        submission.personalityTest = personalityTest;
+        submission.status = PersonalitySubmissionStatus.PENDING_TIE_BREAKER;
+        submission.gourmetScore = 0;
+        submission.restScore = 0;
+        submission.photoScore = 0;
+        submission.activityScore = 0;
+        submission.cultureScore = 0;
+        return submission;
+    }
+
+    public void recordSingleWinner(Map<PersonalityTrait, Integer> scores, PersonalityTrait winner, BirdType birdType) {
+        applyScores(scores);
+        this.selectedTrait = winner;
+        this.tiedTraits = null;
+        this.birdType = birdType;
+        this.status = PersonalitySubmissionStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    public void recordTie(Map<PersonalityTrait, Integer> scores, List<PersonalityTrait> tiedTraits) {
+        applyScores(scores);
+        this.selectedTrait = null;
+        this.tiedTraits = tiedTraits;
+        this.birdType = null;
+        this.status = PersonalitySubmissionStatus.PENDING_TIE_BREAKER;
+        this.completedAt = null;
+    }
+
+    public void resolveTieBreaker(PersonalityTrait selected, BirdType birdType) {
+        this.selectedTrait = selected;
+        this.birdType = birdType;
+        this.status = PersonalitySubmissionStatus.COMPLETED;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    private void applyScores(Map<PersonalityTrait, Integer> scores) {
+        this.gourmetScore = scores.getOrDefault(PersonalityTrait.GOURMET, 0);
+        this.restScore = scores.getOrDefault(PersonalityTrait.REST, 0);
+        this.photoScore = scores.getOrDefault(PersonalityTrait.PHOTO, 0);
+        this.activityScore = scores.getOrDefault(PersonalityTrait.ACTIVITY, 0);
+        this.cultureScore = scores.getOrDefault(PersonalityTrait.CULTURE, 0);
+    }
 }
