@@ -1,0 +1,3 @@
+package com.travelbird.ai.repository;
+import com.travelbird.ai.entity.*;import jakarta.persistence.EntityManager;import java.time.LocalDateTime;import java.util.List;import org.springframework.stereotype.Repository;
+@Repository public class AiQueuedJobReader{private final EntityManager em;public AiQueuedJobReader(EntityManager em){this.em=em;}public List<AiRecommendationJob> queuedBefore(LocalDateTime threshold){return em.createQuery("select j from AiRecommendationJob j where j.status=:status and j.requestedAt<=:threshold order by j.requestedAt",AiRecommendationJob.class).setParameter("status",BackendAiJobStatus.QUEUED).setParameter("threshold",threshold).setMaxResults(50).getResultList();}}
