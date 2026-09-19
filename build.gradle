@@ -81,6 +81,13 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.testcontainers:mysql'
+
+	// 11. AWS SDK v2 (S3 — 이미지 업로드 Presigned URL 발급/검증, 3.5.1)
+	implementation platform('software.amazon.awssdk:bom:2.29.52')
+	implementation 'software.amazon.awssdk:s3'
+
+	// 12. WebP 파일 시그니처/가로세로 검증용(ImageIO에 WebP 리더 추가, JDK 기본엔 없음)
+	implementation 'com.twelvemonkeys.imageio:imageio-webp:3.12.0'
 }
 
 // QueryDSL Q-클래스 생성 위치

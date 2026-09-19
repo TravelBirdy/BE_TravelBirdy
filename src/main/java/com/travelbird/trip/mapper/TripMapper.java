@@ -85,10 +85,12 @@ public class TripMapper {
         day.getDayNumber(), day.getPlaces().stream().map(place -> {
           PlaceContract contract = places.getPlace(place.getPlaceId(), null);
           var fileIds = place.getImages().stream().map(TripPlaceImage::getFileId).toList();
-          var urls = files.getImageUrls(fileIds);
+          var imagesByFileId = files.getImageUrls(fileIds).stream()
+              .collect(java.util.stream.Collectors.toMap(
+                  ImageSummary::fileId, image -> image, (first, ignored) -> first));
           var images = fileIds.stream()
-              .filter(urls::containsKey)
-              .map(fileId -> new ImageSummary(fileId, urls.get(fileId)))
+              .map(imagesByFileId::get)
+              .filter(java.util.Objects::nonNull)
               .toList();
           return new TripPlaceResponse(
               place.getId(), place.getPlaceId(), place.getVisitOrder(),
