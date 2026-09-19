@@ -1,0 +1,3 @@
+package com.travelbird.ai.repository;
+import com.travelbird.ai.entity.AiPreviewPlace;import org.springframework.data.jpa.repository.*;import org.springframework.data.repository.query.Param;
+public interface AiPreviewRouteMutationRepository extends JpaRepository<AiPreviewPlace,Long>{@Modifying @Query(value="UPDATE ai_preview_places SET visit_order=visit_order+1000 WHERE preview_id=:previewId",nativeQuery=true)int stageOrders(@Param("previewId")Long previewId);}

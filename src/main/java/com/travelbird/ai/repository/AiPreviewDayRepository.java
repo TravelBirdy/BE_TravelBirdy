@@ -1,0 +1,1 @@
+package com.travelbird.ai.repository; import com.travelbird.ai.entity.AiPreviewDay; import org.springframework.data.jpa.repository.JpaRepository; public interface AiPreviewDayRepository extends JpaRepository<AiPreviewDay,Long>{}

@@ -1,0 +1,4 @@
+package com.travelbird.ai.entity;
+import jakarta.persistence.*;import java.util.*;import lombok.*;
+@Entity @Table(name="ai_preview_days",uniqueConstraints=@UniqueConstraint(name="uk_ai_preview_day",columnNames={"preview_id","day_number"})) @Getter @NoArgsConstructor(access=AccessLevel.PROTECTED)
+public class AiPreviewDay{@Id @GeneratedValue(strategy=GenerationType.IDENTITY) @Column(name="preview_day_id") private Long id;@ManyToOne(fetch=FetchType.LAZY,optional=false) @JoinColumn(name="preview_id",nullable=false) private AiTripPreview preview;@Column(name="day_number",nullable=false) private int dayNumber;@OneToMany(mappedBy="day",cascade=CascadeType.ALL,orphanRemoval=true) @OrderBy("visitOrder") private List<AiPreviewPlace> places=new ArrayList<>();public AiPreviewDay(int n){dayNumber=n;}void attach(AiTripPreview p){preview=p;for(var x:places)x.attach(p,this);}public void add(AiPreviewPlace p){p.attach(preview,this);places.add(p);}}

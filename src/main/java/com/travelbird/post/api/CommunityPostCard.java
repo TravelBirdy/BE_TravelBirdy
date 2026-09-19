@@ -28,3 +28,5 @@ public record CommunityPostCard(
 		boolean savedRoute
 ) {
 }
+
+
