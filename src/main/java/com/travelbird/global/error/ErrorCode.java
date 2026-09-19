@@ -37,6 +37,8 @@ public enum ErrorCode {
     FILE_METADATA_MISMATCH(HttpStatus.CONFLICT, "FILE_METADATA_MISMATCH"),
     FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "FILE_NOT_FOUND"),
     FILE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "FILE_ACCESS_DENIED"),
+    PLACE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 장소입니다."),
+    REGION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 시군구 코드입니다."),
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "잘못된 요청입니다.");
 
     private final HttpStatus httpStatus;
