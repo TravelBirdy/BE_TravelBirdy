@@ -6,7 +6,7 @@ import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.travelbird.ai.dto.request.AiRecommendationRequest;
-import com.travelbird.ai.repository.AiRecommendationJobRepository;
+import com.travelbird.ai.repository.AiRecommendationDataReader; import com.travelbird.ai.repository.AiRecommendationJobRepository;
 import com.travelbird.common.enums.*;
 import com.travelbird.place.api.PlaceReader;
 import com.travelbird.place.api.SavedPlaceReader;
@@ -35,7 +35,6 @@ class AiRecommendationServiceTest {
     var events = mock(ApplicationEventPublisher.class);
     when(regions.existsBySigunguCode("11110")).thenReturn(true);
     when(places.getPlaces(anyList(), eq(3L))).thenReturn(List.of());
-    when(data.places(any())).thenReturn(List.of());
     var clock = Clock.fixed(Instant.parse("2026-09-10T00:00:00Z"), ZoneOffset.UTC);
     var mapper = new ObjectMapper().findAndRegisterModules();
     var service = new AiRecommendationService(

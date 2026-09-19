@@ -79,7 +79,8 @@ public class AiRecommendationService {
         .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_NOT_FOUND));
     if (!trip.ownedBy(userId)) throw new BusinessException(ErrorCode.TRIP_ACCESS_DENIED);
     trip.ensureMutable();
-    if (routeLocks.findActivePublishedPostByTripId(tripId).isPresent()) throw new BusinessException(ErrorCode.TRIP_ROUTE_LOCKED_BY_PUBLISHED_POST);
+    var routeLock = routeLocks.findActivePublishedPostByTripId(tripId);
+    if (routeLock != null && routeLock.routeLocked()) throw new BusinessException(ErrorCode.TRIP_ROUTE_LOCKED_BY_PUBLISHED_POST);
     var schedule = trip.getDays().stream()
         .map(day -> new ExistingScheduleDay(day.getDayNumber(), day.getPlaces().stream()
             .map(place -> place.getPlaceId()).toList())).toList();
@@ -159,10 +160,3 @@ public class AiRecommendationService {
     return id;
   }
 }
-
-
-
-
-
-
-
