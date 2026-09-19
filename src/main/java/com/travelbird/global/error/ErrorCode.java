@@ -57,6 +57,25 @@ public enum ErrorCode {
     SAVED_PLACE_MEMO_TOO_LONG(HttpStatus.BAD_REQUEST, "메모는 최대 100자까지 입력할 수 있습니다."),
     INVALID_CURSOR(HttpStatus.BAD_REQUEST, "유효하지 않은 커서입니다. 첫 페이지부터 다시 조회해주세요."),
 
+    // 게시글 (Part3, PR#12)
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 게시글입니다."),
+    POST_ACCESS_DENIED(HttpStatus.FORBIDDEN, "작성자만 수정·삭제할 수 있습니다."),
+    TRIP_ACCESS_DENIED(HttpStatus.FORBIDDEN, "본인 소유의 여행이 아닙니다."),
+    POST_ALREADY_EXISTS_FOR_TRIP(HttpStatus.CONFLICT, "이미 해당 여행에 연결된 게시글이 있습니다."),
+    INVALID_POST_CONTENT(HttpStatus.BAD_REQUEST, "발행하려면 제목과 본문이 필요합니다."),
+    POST_TITLE_TOO_LONG(HttpStatus.BAD_REQUEST, "제목은 최대 50자까지 입력할 수 있습니다."),
+    POST_CONTENT_TOO_LONG(HttpStatus.BAD_REQUEST, "본문은 최대 2,000자까지 입력할 수 있습니다."),
+    POST_HASHTAG_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "해시태그는 최대 5개까지 등록할 수 있습니다."),
+    POST_HASHTAG_TOO_LONG(HttpStatus.BAD_REQUEST, "해시태그는 각각 최대 10자까지 입력할 수 있습니다."),
+    POST_IMAGE_LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_ENTITY, "이미지는 최대 10장까지 첨부할 수 있습니다."),
+    POST_MODIFICATION_CONFLICT(HttpStatus.CONFLICT, "다른 요청에 의해 게시글이 먼저 수정되었습니다."),
+    POST_ROUTE_LOCKED_AFTER_PUBLISH(HttpStatus.CONFLICT, "발행된 게시글의 경로 관련 항목은 변경할 수 없습니다."),
+
+    // 커뮤니티 (Part3, Phase4)
+    SEARCH_QUERY_TOO_LONG(HttpStatus.BAD_REQUEST, "검색어는 최대 50자까지 입력할 수 있습니다."),
+    INVALID_SHARE_CHANNEL(HttpStatus.BAD_REQUEST, "유효하지 않은 공유 채널입니다."),
+    REPORT_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "이미 신고한 게시글입니다."),
+
     // 공통
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND"),
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "잘못된 요청입니다.");
