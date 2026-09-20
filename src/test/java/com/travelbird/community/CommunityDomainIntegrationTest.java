@@ -428,7 +428,7 @@ class CommunityDomainIntegrationTest {
 
         mockMvc.perform(post("/api/reports")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"reportedPostId\":" + target.getPostId() + ",\"reasonCode\":\"SPAM\"}"))
+                        .content("{\"postId\":" + target.getPostId() + ",\"reasonCode\":\"SPAM\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("RECEIVED"));
     }
@@ -437,7 +437,7 @@ class CommunityDomainIntegrationTest {
     void 같은_게시글을_중복_신고하면_409다() throws Exception {
         Post target = createPublishedPost("신고대상", "본문", PostVisibility.PUBLIC);
         authenticateAs(OTHER_USER_ID);
-        String body = "{\"reportedPostId\":" + target.getPostId() + ",\"reasonCode\":\"SPAM\"}";
+        String body = "{\"postId\":" + target.getPostId() + ",\"reasonCode\":\"SPAM\"}";
 
         mockMvc.perform(post("/api/reports").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated());
@@ -454,7 +454,7 @@ class CommunityDomainIntegrationTest {
 
         mockMvc.perform(post("/api/reports")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"reportedPostId\":" + target.getPostId() + ",\"reasonCode\":\"ABUSE\"}"))
+                        .content("{\"postId\":" + target.getPostId() + ",\"reasonCode\":\"ABUSE\"}"))
                 .andExpect(status().isCreated());
     }
 
@@ -467,7 +467,7 @@ class CommunityDomainIntegrationTest {
 
         mockMvc.perform(post("/api/reports")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"reportedPostId\":" + target.getPostId() + ",\"reasonCode\":\"SPAM\"}"))
+                        .content("{\"postId\":" + target.getPostId() + ",\"reasonCode\":\"SPAM\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
     }
@@ -478,7 +478,7 @@ class CommunityDomainIntegrationTest {
 
         mockMvc.perform(post("/api/reports")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"reportedPostId\":" + target.getPostId() + ",\"reasonCode\":\"SPAM\"}"))
+                        .content("{\"postId\":" + target.getPostId() + ",\"reasonCode\":\"SPAM\"}"))
                 .andExpect(status().isUnauthorized());
     }
 

@@ -22,7 +22,7 @@ public class ReportController {
     public ResponseEntity<ReportResponse> report(@RequestBody ReportRequest request) {
         Long userId = SecurityUtils.getCurrentUserId();
         ReportResponse response = reportService.submit(
-                userId, request.reportedPostId(), request.reasonCode(), request.description());
+                userId, request.postId(), request.reasonCode(), request.description());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

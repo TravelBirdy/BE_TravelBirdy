@@ -8,7 +8,7 @@ import com.travelbird.community.domain.ReportReasonCode;
  * 다른 취급이다.
  */
 public record ReportRequest(
-        Long reportedPostId,
+        Long postId,
         ReportReasonCode reasonCode,
         String description
 ) {
