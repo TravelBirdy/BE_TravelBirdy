@@ -63,7 +63,7 @@ public class CommunityPostSearchService {
         boolean hasNext = page.size() > size;
         List<Post> content = hasNext ? page.subList(0, size) : page;
         Long nextCursor = hasNext ? content.get(content.size() - 1).getPostId() : null;
-        return new CommunityPostPageResponse(cardAssembler.toCards(content), nextCursor);
+        return new CommunityPostPageResponse(cardAssembler.toCards(content, viewerIdOrNull), nextCursor);
     }
 
     private List<Post> searchAfterCursor(String query, List<Long> excludedTripIds, Long cursorPostId, Pageable pageable) {
