@@ -13,12 +13,9 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 게시글 조회 기록. Owner = Part 3. backend-functional-spec-v10.md §3.9.4.
- *
- * <p>이 Entity/Repository는 읽기 전용이다 — INSERT 경로(조회수 증가 API,
- * {@code POST /api/posts/{postId}/views})는 이번 phase 범위 밖이다("작성자 본인 조회
- * 제외" 판정에 {@code TripPostReader}가 필요한데 아직 main에 없다). 지금은 커뮤니티
- * 인기(POPULAR) 탭의 기간별 집계 조회에만 쓴다.
+ * 게시글 조회 기록. Owner = Part 3. backend-functional-spec-v10.md §3.9.4 — 로그인
+ * 사용자의 게시글 상세 조회를 사용자당 게시글별 24시간에 한 번만 집계한다(중복 판정은
+ * {@code post.service.PostViewService} 참고).
  */
 @Entity
 @Table(name = "post_view_histories")
@@ -39,4 +36,14 @@ public class PostViewHistory {
 
     @Column(name = "viewed_at", nullable = false)
     private LocalDateTime viewedAt;
+
+    private PostViewHistory(Long postId, Long viewerUserId, LocalDateTime viewedAt) {
+        this.postId = postId;
+        this.viewerUserId = viewerUserId;
+        this.viewedAt = viewedAt;
+    }
+
+    public static PostViewHistory of(Long postId, Long viewerUserId, LocalDateTime viewedAt) {
+        return new PostViewHistory(postId, viewerUserId, viewedAt);
+    }
 }

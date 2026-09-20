@@ -18,9 +18,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 커뮤니티 검색(§3.9.3). {@code sigunguCodes}/{@code theme}는 유효성 검증까지만 하고
- * 실제 결과 좁히기는 {@code TripPostReader}(Part2, 미merge) 없이는 불가능해서 이번
- * phase에서 반영하지 않는다 — PR 리뷰 요청에 명시.
+ * 커뮤니티 검색(§3.9.3). 차단 필터링은 {@link CommunityBlockFilter} 참고. {@code
+ * sigunguCodes}/{@code theme}는 유효성 검증까지만 하고 실제 결과 좁히기는 반영하지
+ * 않는다 — {@code TripPostReader}(PR#5, merge됨)로 게시글 지역은 알 수 있어도, 역방향
+ * (지역 코드 -> 그 지역 트립들)으로 찾는 배치 조회 메서드가 계약에 없어서다. PR 리뷰
+ * 요청에 명시.
  */
 @Service
 @RequiredArgsConstructor
@@ -35,9 +37,10 @@ public class CommunityPostSearchService {
     private final CommunitySearchValidator searchValidator;
     private final CommunityPostCardAssembler cardAssembler;
     private final PostRepository postRepository;
+    private final CommunityBlockFilter blockFilter;
 
     public CommunityPostPageResponse search(String query, List<String> sigunguCodesOrNull, String themeOrNull,
-                                             Long cursorOrNull, Integer sizeOrNull) {
+                                             Long cursorOrNull, Integer sizeOrNull, Long viewerIdOrNull) {
         searchValidator.validateQueryLength(query);
 
         // "빈 배열은 빈 결과" — sigunguCodes가 명시적으로 []이면 region 데이터 없이도
@@ -45,18 +48,17 @@ public class CommunityPostSearchService {
         if (sigunguCodesOrNull != null && sigunguCodesOrNull.isEmpty()) {
             return new CommunityPostPageResponse(List.of(), null);
         }
-        // 유효한 코드만 걸러내는 검증까지는 하지만, 아직 실제 필터로는 안 씀.
-        // TODO(B1 풀리면 교체): TripPostReader 확정되면 이 결과를 검색 predicate에 반영.
+        // 유효한 코드만 걸러내는 검증까지는 하지만, 아직 실제 필터로는 안 씀(클래스 Javadoc 참고).
         searchValidator.resolveValidSigunguCodes(sigunguCodesOrNull);
         // themeOrNull: TravelTheme 타입이 아직 코드베이스에 없어 검증/필터 없이 무시한다.
-        // TODO(B1 풀리면 교체)
 
         int size = clampSize(sizeOrNull);
         Pageable pageable = PageRequest.of(0, size + 1);
+        List<Long> excludedTripIds = blockFilter.resolveExcludedTripIds(viewerIdOrNull);
 
         List<Post> page = (cursorOrNull == null)
-                ? searchRepository.searchFirstPage(query, pageable)
-                : searchAfterCursor(query, cursorOrNull, pageable);
+                ? searchRepository.searchFirstPage(query, excludedTripIds, pageable)
+                : searchAfterCursor(query, excludedTripIds, cursorOrNull, pageable);
 
         boolean hasNext = page.size() > size;
         List<Post> content = hasNext ? page.subList(0, size) : page;
@@ -64,7 +66,7 @@ public class CommunityPostSearchService {
         return new CommunityPostPageResponse(cardAssembler.toCards(content), nextCursor);
     }
 
-    private List<Post> searchAfterCursor(String query, Long cursorPostId, Pageable pageable) {
+    private List<Post> searchAfterCursor(String query, List<Long> excludedTripIds, Long cursorPostId, Pageable pageable) {
         int cursorPriority;
         LocalDateTime cursorCreatedAt;
 
@@ -82,7 +84,7 @@ public class CommunityPostSearchService {
             cursorCreatedAt = cursorPost.getCreatedAt();
         }
 
-        return searchRepository.searchAfterCursor(query, cursorPriority, cursorCreatedAt, cursorPostId, pageable);
+        return searchRepository.searchAfterCursor(query, excludedTripIds, cursorPriority, cursorCreatedAt, cursorPostId, pageable);
     }
 
     private int clampSize(Integer sizeOrNull) {

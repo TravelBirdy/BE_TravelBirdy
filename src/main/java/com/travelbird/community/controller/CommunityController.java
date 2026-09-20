@@ -5,9 +5,8 @@ import com.travelbird.community.controller.dto.CommunityPostPageResponse;
 import com.travelbird.community.controller.dto.CommunityTab;
 import com.travelbird.community.service.CommunityFeedService;
 import com.travelbird.community.service.CommunityPostSearchService;
+import com.travelbird.global.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,11 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * 커뮤니티 목록/검색. backend-functional-spec-v10.md §3.9.1~§3.9.3. 비로그인도 허용되는
- * 엔드포인트라({@code security: [{}, {bearerAuth}]}) {@code SecurityUtils.getCurrentUserId()}
- * (없으면 401 throw)를 못 쓴다 — 이 컨트롤러 안에서만 쓰는 로컬 옵션 인증 헬퍼를 둔다.
- * {@code global.security.SecurityUtils}에 {@code getCurrentUserIdOrNull()}로 올릴지는
- * 리뷰에서 결정.
+ * 커뮤니티 목록/검색. backend-functional-spec-v10.md §3.9.1~§3.9.3. ALL/POPULAR/검색은
+ * 비로그인도 허용되는 엔드포인트라({@code security: [{}, {bearerAuth}]})
+ * {@code SecurityUtils.getCurrentUserIdOrNull()}을 쓴다. FOLLOWING은 로그인 필수라
+ * {@code getCurrentUserId()}(없으면 401)를 쓴다.
  */
 @RestController
 @RequiredArgsConstructor
@@ -33,10 +31,10 @@ public class CommunityController {
                                            @RequestParam(required = false) CommunityPeriod period,
                                            @RequestParam(required = false) Long cursor,
                                            @RequestParam(required = false) Integer size) {
-        Long viewerIdOrNull = currentUserIdOrNull();
         return switch (tab) {
-            case ALL -> communityFeedService.listAll(cursor, size, viewerIdOrNull);
-            case POPULAR -> communityFeedService.listPopular(period, cursor, size, viewerIdOrNull);
+            case ALL -> communityFeedService.listAll(cursor, size, SecurityUtils.getCurrentUserIdOrNull());
+            case POPULAR -> communityFeedService.listPopular(period, cursor, size, SecurityUtils.getCurrentUserIdOrNull());
+            case FOLLOWING -> communityFeedService.listFollowing(cursor, size, SecurityUtils.getCurrentUserId());
         };
     }
 
@@ -46,15 +44,7 @@ public class CommunityController {
                                              @RequestParam(required = false) String theme,
                                              @RequestParam(required = false) Long cursor,
                                              @RequestParam(required = false) Integer size) {
-        return communityPostSearchService.search(query, sigunguCodes, theme, cursor, size);
-    }
-
-    private Long currentUserIdOrNull() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()
-                || !(authentication.getPrincipal() instanceof Long userId)) {
-            return null;
-        }
-        return userId;
+        return communityPostSearchService.search(
+                query, sigunguCodes, theme, cursor, size, SecurityUtils.getCurrentUserIdOrNull());
     }
 }

@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 커뮤니티 전체(ALL)·인기(POPULAR) 목록. backend-functional-spec-v10.md §3.9.1/§3.9.2.
- * FOLLOWING 탭과 차단 필터링은 이번 phase 범위 밖(작성자를 알 방법이 없음 —
- * {@code TripPostReader} 필요, PR 리뷰 요청 참고).
+ * 커뮤니티 전체(ALL)·인기(POPULAR)·이웃새(FOLLOWING) 목록.
+ * backend-functional-spec-v10.md §3.9.1/§3.9.2. 차단 필터링은 {@link CommunityBlockFilter}
+ * 참고.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,36 +41,26 @@ public class CommunityFeedService {
     private final PostRepository postRepository;
     private final CommunityPopularFeedRepository communityPopularFeedRepository;
     private final CommunityPostCardAssembler cardAssembler;
+    private final CommunityBlockFilter blockFilter;
 
     public CommunityPostPageResponse listAll(Long cursorOrNull, Integer sizeOrNull, Long viewerIdOrNull) {
         int size = clampSize(sizeOrNull);
         Pageable pageable = PageRequest.of(0, size + 1);
+        List<Long> excludedTripIds = blockFilter.resolveExcludedTripIds(viewerIdOrNull);
 
         List<Post> page = (cursorOrNull == null)
-                ? postRepository.findAllFeedFirstPage(PostStatus.PUBLISHED, VISIBLE_TO_COMMUNITY, pageable)
-                : findAllFeedAfterCursor(cursorOrNull, pageable);
+                ? postRepository.findAllFeedFirstPage(PostStatus.PUBLISHED, VISIBLE_TO_COMMUNITY, excludedTripIds, pageable)
+                : findAllFeedAfterCursor(cursorOrNull, excludedTripIds, pageable);
 
         return toPageResponse(page, size);
     }
 
-    private List<Post> findAllFeedAfterCursor(Long cursorPostId, Pageable pageable) {
+    private List<Post> findAllFeedAfterCursor(Long cursorPostId, List<Long> excludedTripIds, Pageable pageable) {
         Post cursorPost = postRepository.findById(cursorPostId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CURSOR));
         return postRepository.findAllFeedAfterCursor(
-                PostStatus.PUBLISHED, VISIBLE_TO_COMMUNITY,
+                PostStatus.PUBLISHED, VISIBLE_TO_COMMUNITY, excludedTripIds,
                 roundToStoredPrecision(cursorPost.getPublishedAt()), cursorPostId, pageable);
-    }
-
-    /**
-     * {@code posts.published_at}은 MySQL {@code DATETIME}(초 단위)이라 저장 시 나노초를
-     * 반올림한다(place.service.SavedPlaceService.roundToStoredPrecision과 동일 이슈 —
-     * 0.665740초 -> 저장값 +1초). 이 트랜잭션 안에서 방금 만든 Post는 Hibernate 1차
-     * 캐시가 삽입 전(반올림 전) 값을 그대로 들고 있어서, 커서 비교 전에 반올림해야
-     * DB 저장값과 정확히 맞는다.
-     */
-    private LocalDateTime roundToStoredPrecision(LocalDateTime value) {
-        LocalDateTime truncated = value.truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
-        return value.getNano() >= 500_000_000 ? truncated.plusSeconds(1) : truncated;
     }
 
     public CommunityPostPageResponse listPopular(CommunityPeriod periodOrNull, Long cursorOrNull,
@@ -80,6 +70,7 @@ public class CommunityFeedService {
         LocalDateTime from = resolveFrom(period, to);
         int size = clampSize(sizeOrNull);
         Pageable pageable = PageRequest.of(0, size + 1);
+        List<Long> excludedTripIds = blockFilter.resolveExcludedTripIds(viewerIdOrNull);
 
         Long cursorScore = null;
         LocalDateTime cursorPublishedAt = null;
@@ -92,16 +83,56 @@ public class CommunityFeedService {
         }
 
         List<Long> orderedIds = communityPopularFeedRepository.findPopularFeedPostIds(
-                from, to, cursorScore, cursorPublishedAt, cursorOrNull, pageable);
+                from, to, excludedTripIds, cursorScore, cursorPublishedAt, cursorOrNull, pageable);
 
+        return toPageResponse(loadInOrder(orderedIds), size);
+    }
+
+    /**
+     * FOLLOWING 탭. 컨트롤러가 인증을 이미 강제하므로 {@code viewerId}는 항상 로그인된 값이다.
+     */
+    public CommunityPostPageResponse listFollowing(Long cursorOrNull, Integer sizeOrNull, Long viewerId) {
+        List<Long> includedTripIds = blockFilter.resolveTripIdsForUsers(blockFilter.getFollowingUserIds(viewerId));
+        if (includedTripIds.isEmpty()) {
+            return new CommunityPostPageResponse(List.of(), null);
+        }
+        int size = clampSize(sizeOrNull);
+        Pageable pageable = PageRequest.of(0, size + 1);
+        List<Long> excludedTripIds = blockFilter.resolveExcludedTripIds(viewerId);
+
+        List<Post> page = (cursorOrNull == null)
+                ? postRepository.findFollowingFeedFirstPage(
+                        PostStatus.PUBLISHED, VISIBLE_TO_COMMUNITY, includedTripIds, excludedTripIds, pageable)
+                : findFollowingFeedAfterCursor(cursorOrNull, includedTripIds, excludedTripIds, pageable);
+
+        return toPageResponse(page, size);
+    }
+
+    private List<Post> findFollowingFeedAfterCursor(Long cursorPostId, List<Long> includedTripIds,
+                                                      List<Long> excludedTripIds, Pageable pageable) {
+        Post cursorPost = postRepository.findById(cursorPostId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CURSOR));
+        return postRepository.findFollowingFeedAfterCursor(
+                PostStatus.PUBLISHED, VISIBLE_TO_COMMUNITY, includedTripIds, excludedTripIds,
+                roundToStoredPrecision(cursorPost.getPublishedAt()), cursorPostId, pageable);
+    }
+
+    private List<Post> loadInOrder(List<Long> orderedPostIds) {
         Map<Long, Post> postsById = new HashMap<>();
-        postRepository.findAllById(orderedIds).forEach(post -> postsById.put(post.getPostId(), post));
-        List<Post> orderedPosts = orderedIds.stream()
-                .map(postsById::get)
-                .filter(Objects::nonNull)
-                .toList();
+        postRepository.findAllById(orderedPostIds).forEach(post -> postsById.put(post.getPostId(), post));
+        return orderedPostIds.stream().map(postsById::get).filter(Objects::nonNull).toList();
+    }
 
-        return toPageResponse(orderedPosts, size);
+    /**
+     * {@code posts.published_at}은 MySQL {@code DATETIME}(초 단위)이라 저장 시 나노초를
+     * 반올림한다(place.service.SavedPlaceService.roundToStoredPrecision과 동일 이슈 —
+     * 0.665740초 -> 저장값 +1초). 이 트랜잭션 안에서 방금 만든 Post는 Hibernate 1차
+     * 캐시가 삽입 전(반올림 전) 값을 그대로 들고 있어서, 커서 비교 전에 반올림해야
+     * DB 저장값과 정확히 맞는다.
+     */
+    private LocalDateTime roundToStoredPrecision(LocalDateTime value) {
+        LocalDateTime truncated = value.truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
+        return value.getNano() >= 500_000_000 ? truncated.plusSeconds(1) : truncated;
     }
 
     private LocalDateTime resolveFrom(CommunityPeriod period, LocalDateTime now) {

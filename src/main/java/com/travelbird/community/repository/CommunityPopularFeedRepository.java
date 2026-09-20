@@ -25,7 +25,8 @@ public interface CommunityPopularFeedRepository extends Repository<Post, Long> {
     /**
      * 커서(없으면 첫 페이지) 이후 {@code (score, publishedAt, postId)} 내림차순으로
      * postId 목록을 반환한다. {@code cursorScoreOrNull}이 {@code null}이면 커서 없음으로
-     * 취급한다.
+     * 취급한다. {@code excludedTripIds}는 차단 관계 tripId 목록 — 제외할 게 없으면
+     * {@code List.of(-1L)}처럼 존재할 수 없는 값을 넘긴다(빈 {@code IN()}은 SQL 오류).
      */
     @Query(value = """
             select post_id from (
@@ -38,6 +39,7 @@ public interface CommunityPopularFeedRepository extends Repository<Post, Long> {
                          where created_at >= :from and created_at < :to group by post_id) s on s.post_id = p.post_id
               where p.status = 'PUBLISHED' and p.deleted_at is null
                 and p.visibility in ('PUBLIC', 'MEMO_PRIVATE')
+                and p.trip_id not in (:excludedTripIds)
             ) scored
             where (:cursorScore is null)
                or (score < :cursorScore)
@@ -47,6 +49,7 @@ public interface CommunityPopularFeedRepository extends Repository<Post, Long> {
             """, nativeQuery = true)
     List<Long> findPopularFeedPostIds(@Param("from") LocalDateTime from,
                                        @Param("to") LocalDateTime to,
+                                       @Param("excludedTripIds") List<Long> excludedTripIds,
                                        @Param("cursorScore") Long cursorScoreOrNull,
                                        @Param("cursorPublishedAt") LocalDateTime cursorPublishedAtOrNull,
                                        @Param("cursorPostId") Long cursorPostIdOrNull,

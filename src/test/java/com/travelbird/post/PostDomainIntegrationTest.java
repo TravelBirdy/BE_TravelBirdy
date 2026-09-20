@@ -76,7 +76,7 @@ class PostDomainIntegrationTest {
         entityManager.createNativeQuery(
                         "insert into trips (user_id, source_type, title, sigungu_code, start_date, end_date, "
                                 + "companion_type, pace) values (:userId, 'MANUAL', '테스트 여행', :sigunguCode, "
-                                + ":start, :end, 'ALONE', 'RELAXED')")
+                                + ":start, :end, 'SOLO', 'RELAXED')")
                 .setParameter("userId", USER_ID)
                 .setParameter("sigunguCode", SIGUNGU_CODE)
                 .setParameter("start", LocalDate.now())

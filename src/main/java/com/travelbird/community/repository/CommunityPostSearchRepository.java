@@ -25,8 +25,9 @@ import java.util.Optional;
  * 파생 메서드 조합으로 얻을 게 없어 인터페이스+Impl 관례 대신 구체 클래스로 둔다.
  *
  * <p>가중치 우선순위는 스펙상 4단계(①지역 정확일치 ②태그 정확일치 ③제목 포함 ④본문 포함)지만,
- * ①지역은 {@code TripPostReader}(Part2, 미merge) 없이는 게시글의 지역 자체를 몰라서 이번
- * phase에서는 뺀다(②③④만 반영, TODO로 명시).
+ * ①지역은 뺀다(②③④만 반영, TODO로 명시) — {@code TripPostReader}(PR#5, merge됨)로 게시글의
+ * 지역 자체는 알 수 있어도, "이 지역 코드를 가진 트립들"을 역으로 찾는 배치 조회 메서드가
+ * 계약에 없어서 SQL 단계에서 지역으로 필터링/정렬할 방법이 아직 없다.
  */
 @Repository
 @RequiredArgsConstructor
@@ -37,21 +38,21 @@ public class CommunityPostSearchRepository {
     private static final QPost post = QPost.post;
     private static final QPostHashtag hashtag = QPostHashtag.postHashtag;
 
-    public List<Post> searchFirstPage(String query, Pageable pageable) {
-        return baseQuery(query)
+    public List<Post> searchFirstPage(String query, List<Long> excludedTripIds, Pageable pageable) {
+        return baseQuery(query, excludedTripIds)
                 .orderBy(priority(query).asc(), post.createdAt.desc(), post.postId.desc())
                 .limit(pageable.getPageSize())
                 .fetch();
     }
 
-    public List<Post> searchAfterCursor(String query, int cursorPriority, LocalDateTime cursorCreatedAt,
-                                         Long cursorPostId, Pageable pageable) {
+    public List<Post> searchAfterCursor(String query, List<Long> excludedTripIds, int cursorPriority,
+                                         LocalDateTime cursorCreatedAt, Long cursorPostId, Pageable pageable) {
         NumberExpression<Integer> priority = priority(query);
         BooleanExpression cursorPredicate = priority.gt(cursorPriority)
                 .or(priority.eq(cursorPriority).and(post.createdAt.lt(cursorCreatedAt)))
                 .or(priority.eq(cursorPriority).and(post.createdAt.eq(cursorCreatedAt)).and(post.postId.lt(cursorPostId)));
 
-        return baseQuery(query)
+        return baseQuery(query, excludedTripIds)
                 .where(cursorPredicate)
                 .orderBy(priority.asc(), post.createdAt.desc(), post.postId.desc())
                 .limit(pageable.getPageSize())
@@ -73,11 +74,12 @@ public class CommunityPostSearchRepository {
                         .fetchOne());
     }
 
-    private com.querydsl.jpa.impl.JPAQuery<Post> baseQuery(String query) {
+    private com.querydsl.jpa.impl.JPAQuery<Post> baseQuery(String query, List<Long> excludedTripIds) {
         return queryFactory.selectFrom(post)
                 .where(post.status.eq(PostStatus.PUBLISHED),
                         post.deletedAt.isNull(),
                         post.visibility.in(PostVisibility.PUBLIC, PostVisibility.MEMO_PRIVATE),
+                        post.tripId.notIn(excludedTripIds),
                         matchPredicate(query));
     }
 

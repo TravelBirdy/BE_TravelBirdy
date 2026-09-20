@@ -58,6 +58,7 @@ class CommunityDomainIntegrationTest {
     private static final String SIGUNGU_CODE = "11110";
     private static final Long USER_ID = 1L;
     private static final Long OTHER_USER_ID = 2L;
+    private static final Long AUTHOR_USER_ID = 3L;
 
     @Autowired
     private MockMvc mockMvc;
@@ -81,6 +82,9 @@ class CommunityDomainIntegrationTest {
         entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
                 .setParameter("id", OTHER_USER_ID)
                 .executeUpdate();
+        entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
+                .setParameter("id", AUTHOR_USER_ID)
+                .executeUpdate();
     }
 
     @AfterEach
@@ -94,11 +98,15 @@ class CommunityDomainIntegrationTest {
     }
 
     private Long createTripFixture() {
+        return createTripFixture(USER_ID);
+    }
+
+    private Long createTripFixture(Long ownerUserId) {
         entityManager.createNativeQuery(
                         "insert into trips (user_id, source_type, title, sigungu_code, start_date, end_date, "
                                 + "companion_type, pace) values (:userId, 'MANUAL', '테스트 여행', :sigunguCode, "
-                                + ":start, :end, 'ALONE', 'RELAXED')")
-                .setParameter("userId", USER_ID)
+                                + ":start, :end, 'SOLO', 'RELAXED')")
+                .setParameter("userId", ownerUserId)
                 .setParameter("sigunguCode", SIGUNGU_CODE)
                 .setParameter("start", LocalDate.now())
                 .setParameter("end", LocalDate.now().plusDays(1))
@@ -108,7 +116,11 @@ class CommunityDomainIntegrationTest {
     }
 
     private Post createPublishedPost(String title, String content, PostVisibility visibility) {
-        Long tripId = createTripFixture();
+        return createPublishedPost(USER_ID, title, content, visibility);
+    }
+
+    private Post createPublishedPost(Long ownerUserId, String title, String content, PostVisibility visibility) {
+        Long tripId = createTripFixture(ownerUserId);
         return postRepository.saveAndFlush(Post.create(tripId, title, content, null, visibility, true));
     }
 
@@ -119,6 +131,22 @@ class CommunityDomainIntegrationTest {
                 .setParameter("id", postId)
                 .executeUpdate();
         entityManager.clear();
+    }
+
+    private void follow(Long followerUserId, Long followingUserId) {
+        entityManager.createNativeQuery(
+                        "insert into follows (follower_user_id, following_user_id) values (:follower, :following)")
+                .setParameter("follower", followerUserId)
+                .setParameter("following", followingUserId)
+                .executeUpdate();
+    }
+
+    private void block(Long blockerUserId, Long blockedUserId) {
+        entityManager.createNativeQuery(
+                        "insert into user_blocks (blocker_user_id, blocked_user_id) values (:blocker, :blocked)")
+                .setParameter("blocker", blockerUserId)
+                .setParameter("blocked", blockedUserId)
+                .executeUpdate();
     }
 
     private void insertViewHistory(Long postId, LocalDateTime viewedAt) {
@@ -208,7 +236,7 @@ class CommunityDomainIntegrationTest {
 
     @Test
     void 정의되지_않은_탭은_400이다() throws Exception {
-        mockMvc.perform(get("/api/community/posts").param("tab", "FOLLOWING"))
+        mockMvc.perform(get("/api/community/posts").param("tab", "TRENDING"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -312,7 +340,7 @@ class CommunityDomainIntegrationTest {
         // 서비스 계층에서 직접 검증한다 — 실제 단위는 CommunitySearchValidatorTest에서도 확인.
         createPublishedPost("아무거나 제목", "본문", PostVisibility.PUBLIC);
 
-        var response = communityPostSearchService.search("아무거나", List.of(), null, null, null);
+        var response = communityPostSearchService.search("아무거나", List.of(), null, null, null, null);
 
         org.assertj.core.api.Assertions.assertThat(response.items()).isEmpty();
         org.assertj.core.api.Assertions.assertThat(response.nextCursor()).isNull();
@@ -452,5 +480,170 @@ class CommunityDomainIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reportedPostId\":" + target.getPostId() + ",\"reasonCode\":\"SPAM\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ===== 카드 실제 데이터(TripPostReader/RegionReader 연동) =====
+
+    @Test
+    void 카드에_실제_지역과_작성자_userId가_채워진다() throws Exception {
+        createPublishedPost(AUTHOR_USER_ID, "제목", "본문", PostVisibility.PUBLIC);
+
+        mockMvc.perform(get("/api/community/posts").param("tab", "ALL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].region.sigunguCode").value(SIGUNGU_CODE))
+                .andExpect(jsonPath("$.items[0].author.userId").value(AUTHOR_USER_ID));
+    }
+
+    // ===== FOLLOWING 탭 =====
+
+    @Test
+    void FOLLOWING_탭은_팔로우한_유저의_글만_보여준다() throws Exception {
+        createPublishedPost(AUTHOR_USER_ID, "팔로우한사람글", "본문", PostVisibility.PUBLIC);
+        createPublishedPost(OTHER_USER_ID, "안팔로우한사람글", "본문", PostVisibility.PUBLIC);
+        follow(USER_ID, AUTHOR_USER_ID);
+        authenticateAs(USER_ID);
+
+        mockMvc.perform(get("/api/community/posts").param("tab", "FOLLOWING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].title").value("팔로우한사람글"));
+    }
+
+    @Test
+    void FOLLOWING_탭_팔로우가_없으면_빈_목록이다() throws Exception {
+        authenticateAs(USER_ID);
+
+        mockMvc.perform(get("/api/community/posts").param("tab", "FOLLOWING"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void FOLLOWING_탭_비로그인은_401이다() throws Exception {
+        mockMvc.perform(get("/api/community/posts").param("tab", "FOLLOWING"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // ===== 차단 필터링 =====
+
+    @Test
+    void 차단한_유저의_글은_ALL_탭에서_제외된다() throws Exception {
+        createPublishedPost(AUTHOR_USER_ID, "차단대상글", "본문", PostVisibility.PUBLIC);
+        createPublishedPost(OTHER_USER_ID, "정상글", "본문", PostVisibility.PUBLIC);
+        block(USER_ID, AUTHOR_USER_ID);
+        authenticateAs(USER_ID);
+
+        mockMvc.perform(get("/api/community/posts").param("tab", "ALL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].title").value("정상글"));
+    }
+
+    @Test
+    void 나를_차단한_유저의_글도_ALL_탭에서_제외된다() throws Exception {
+        createPublishedPost(AUTHOR_USER_ID, "상대방글", "본문", PostVisibility.PUBLIC);
+        block(AUTHOR_USER_ID, USER_ID);
+        authenticateAs(USER_ID);
+
+        mockMvc.perform(get("/api/community/posts").param("tab", "ALL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(0));
+    }
+
+    @Test
+    void 차단한_유저의_글은_검색에서도_제외된다() throws Exception {
+        createPublishedPost(AUTHOR_USER_ID, "검색어포함 차단대상", "본문", PostVisibility.PUBLIC);
+        createPublishedPost(OTHER_USER_ID, "검색어포함 정상글", "본문", PostVisibility.PUBLIC);
+        block(USER_ID, AUTHOR_USER_ID);
+        authenticateAs(USER_ID);
+
+        mockMvc.perform(get("/api/community/posts/search").param("query", "검색어포함"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].title").value("검색어포함 정상글"));
+    }
+
+    // ===== 조회수 증가 =====
+
+    @Test
+    void 조회수_증가는_뷰_기록을_남기고_카운트를_올린다() throws Exception {
+        Post target = createPublishedPost(AUTHOR_USER_ID, "조회대상", "본문", PostVisibility.PUBLIC);
+        authenticateAs(OTHER_USER_ID);
+
+        mockMvc.perform(post("/api/posts/{postId}/views", target.getPostId()))
+                .andExpect(status().isNoContent());
+
+        entityManager.clear();
+        Post reloaded = postRepository.findById(target.getPostId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(reloaded.getViewCount()).isEqualTo(1);
+
+        Long rows = ((Number) entityManager.createNativeQuery(
+                        "select count(*) from post_view_histories where post_id = :id and viewer_user_id = :userId")
+                .setParameter("id", target.getPostId())
+                .setParameter("userId", OTHER_USER_ID)
+                .getSingleResult()).longValue();
+        org.assertj.core.api.Assertions.assertThat(rows).isEqualTo(1);
+    }
+
+    @Test
+    void 작성자_본인_조회는_집계되지_않는다() throws Exception {
+        Post target = createPublishedPost(AUTHOR_USER_ID, "조회대상", "본문", PostVisibility.PUBLIC);
+        authenticateAs(AUTHOR_USER_ID);
+
+        mockMvc.perform(post("/api/posts/{postId}/views", target.getPostId()))
+                .andExpect(status().isNoContent());
+
+        entityManager.clear();
+        Post reloaded = postRepository.findById(target.getPostId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(reloaded.getViewCount()).isZero();
+    }
+
+    @Test
+    void 비로그인_조회는_집계되지_않는다() throws Exception {
+        Post target = createPublishedPost(AUTHOR_USER_ID, "조회대상", "본문", PostVisibility.PUBLIC);
+
+        mockMvc.perform(post("/api/posts/{postId}/views", target.getPostId()))
+                .andExpect(status().isNoContent());
+
+        entityManager.clear();
+        Post reloaded = postRepository.findById(target.getPostId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(reloaded.getViewCount()).isZero();
+    }
+
+    @Test
+    void 짧은_시간_내_중복_조회는_한번만_집계된다() throws Exception {
+        Post target = createPublishedPost(AUTHOR_USER_ID, "조회대상", "본문", PostVisibility.PUBLIC);
+        authenticateAs(OTHER_USER_ID);
+
+        mockMvc.perform(post("/api/posts/{postId}/views", target.getPostId())).andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/posts/{postId}/views", target.getPostId())).andExpect(status().isNoContent());
+
+        entityManager.clear();
+        Post reloaded = postRepository.findById(target.getPostId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(reloaded.getViewCount()).isEqualTo(1);
+    }
+
+    @Test
+    void 접근_불가능한_게시글_조회는_404다() throws Exception {
+        Post target = createPublishedPost(AUTHOR_USER_ID, "비공개", "본문", PostVisibility.PRIVATE);
+        authenticateAs(OTHER_USER_ID);
+
+        mockMvc.perform(post("/api/posts/{postId}/views", target.getPostId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
+    }
+
+    @Test
+    void 차단_관계_조회는_집계되지_않지만_204다() throws Exception {
+        Post target = createPublishedPost(AUTHOR_USER_ID, "조회대상", "본문", PostVisibility.PUBLIC);
+        block(OTHER_USER_ID, AUTHOR_USER_ID);
+        authenticateAs(OTHER_USER_ID);
+
+        mockMvc.perform(post("/api/posts/{postId}/views", target.getPostId()))
+                .andExpect(status().isNoContent());
+
+        entityManager.clear();
+        Post reloaded = postRepository.findById(target.getPostId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(reloaded.getViewCount()).isZero();
     }
 }
