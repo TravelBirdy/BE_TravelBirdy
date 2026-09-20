@@ -300,12 +300,12 @@ class PhotoMapDomainIntegrationTest {
 
         mockMvc.perform(get("/api/users/me/photomap/regions/{regionCode}/places", SIGUNGU_CODE_A))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.places.length()").value(1))
-                .andExpect(jsonPath("$.places[0].placeId").value(placeId))
-                .andExpect(jsonPath("$.places[0].name").value("테스트 장소"))
-                .andExpect(jsonPath("$.places[0].visitCount").value(1))
-                .andExpect(jsonPath("$.places[0].representativePostId").value(post.getPostId()))
-                .andExpect(jsonPath("$.places[0].postIds.length()").value(0));
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].placeId").value(placeId))
+                .andExpect(jsonPath("$.items[0].name").value("테스트 장소"))
+                .andExpect(jsonPath("$.items[0].visitCount").value(1))
+                .andExpect(jsonPath("$.items[0].representativePostId").value(post.getPostId()))
+                .andExpect(jsonPath("$.items[0].postIds.length()").value(0));
     }
 
     @Test
@@ -322,10 +322,10 @@ class PhotoMapDomainIntegrationTest {
 
         mockMvc.perform(get("/api/users/me/photomap/regions/{regionCode}/places", SIGUNGU_CODE_A))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.places[0].visitCount").value(3))
-                .andExpect(jsonPath("$.places[0].representativePostId").value(newest.getPostId()))
-                .andExpect(jsonPath("$.places[0].postIds[0]").value(middle.getPostId()))
-                .andExpect(jsonPath("$.places[0].postIds[1]").value(oldest.getPostId()));
+                .andExpect(jsonPath("$.items[0].visitCount").value(3))
+                .andExpect(jsonPath("$.items[0].representativePostId").value(newest.getPostId()))
+                .andExpect(jsonPath("$.items[0].postIds[0]").value(middle.getPostId()))
+                .andExpect(jsonPath("$.items[0].postIds[1]").value(oldest.getPostId()));
     }
 
     @Test
@@ -338,17 +338,19 @@ class PhotoMapDomainIntegrationTest {
 
         mockMvc.perform(get("/api/users/me/photomap/regions/{regionCode}/places", SIGUNGU_CODE_A))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.places.length()").value(1))
-                .andExpect(jsonPath("$.places[0].placeId").value(placeIdA));
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].placeId").value(placeIdA));
     }
 
     @Test
-    void 존재하지_않는_지역코드는_404다() throws Exception {
+    void 존재하지_않는_지역코드는_200과_빈_목록이다() throws Exception {
+        // OpenAPI가 이 엔드포인트에 200/401만 정의하고 404가 없어서(oriole0419 PR#16 리뷰),
+        // 방문 기록이 없는 지역코드는 검증 없이 그냥 빈 목록으로 응답한다.
         authenticateAs(USER_ID);
 
         mockMvc.perform(get("/api/users/me/photomap/regions/{regionCode}/places", "99999"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("REGION_NOT_FOUND"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(0));
     }
 
     @Test

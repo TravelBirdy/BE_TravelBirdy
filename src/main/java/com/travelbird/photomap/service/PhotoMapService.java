@@ -1,8 +1,6 @@
 package com.travelbird.photomap.service;
 
 import com.travelbird.common.dto.RegionSummary;
-import com.travelbird.global.error.BusinessException;
-import com.travelbird.global.error.ErrorCode;
 import com.travelbird.photomap.controller.dto.PhotoMapPlaceItem;
 import com.travelbird.photomap.controller.dto.PhotoMapPlaceListResponse;
 import com.travelbird.photomap.controller.dto.PhotoMapRegionItem;
@@ -69,11 +67,14 @@ public class PhotoMapService {
         return new PhotoMapRegionsResponse(items, items.size());
     }
 
+    /**
+     * OpenAPI {@code GET /api/users/me/photomap/regions/{regionCode}/places}는 200/401만
+     * 정의하고 404가 없다 — 이전엔 {@code RegionReader.existsBySigunguCode}로 잘못된
+     * regionCode를 404 처리했는데(oriole0419 PR#16 리뷰로 의도한 동작인지 질문받음), 스펙에
+     * 맞춰 검증을 없앴다. 존재하지 않는/방문한 적 없는 regionCode는 필터 결과가 자연히
+     * 비어 200+빈 배열로 응답한다.
+     */
     public PhotoMapPlaceListResponse getPlacesByRegion(Long userId, String regionCode) {
-        if (!regionReader.existsBySigunguCode(regionCode)) {
-            throw new BusinessException(ErrorCode.REGION_NOT_FOUND);
-        }
-
         List<PhotoMapVisitAssembler.VisitedPlaceRecord> records = visitAssembler.resolveVisitedRecords(userId);
         if (records.isEmpty()) {
             return new PhotoMapPlaceListResponse(List.of());
