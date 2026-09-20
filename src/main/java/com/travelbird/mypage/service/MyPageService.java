@@ -3,6 +3,8 @@ package com.travelbird.mypage.service;
 import com.travelbird.mypage.dto.response.MyPageProfile;
 import com.travelbird.mypage.dto.response.MyPageResponse;
 import com.travelbird.mypage.dto.response.MyPageStatistics;
+import com.travelbird.post.api.UserContentStatistics;
+import com.travelbird.post.api.UserContentStatisticsReader;
 import com.travelbird.user.domain.User;
 import com.travelbird.user.domain.UserStatus;
 import com.travelbird.global.error.BusinessException;
