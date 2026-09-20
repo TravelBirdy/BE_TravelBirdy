@@ -114,6 +114,11 @@ public enum ErrorCode {
     PLACE_REGION_MISMATCH(HttpStatus.UNPROCESSABLE_ENTITY, "장소가 요청한 지역과 일치하지 않습니다."),
     SAVED_PLACE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "선택한 장소는 사용자의 저장 장소가 아닙니다."),
 
+    // 커뮤니티 (Part3, Phase4)
+    SEARCH_QUERY_TOO_LONG(HttpStatus.BAD_REQUEST, "검색어는 최대 50자까지 입력할 수 있습니다."),
+    INVALID_SHARE_CHANNEL(HttpStatus.BAD_REQUEST, "유효하지 않은 공유 채널입니다."),
+    REPORT_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "이미 신고한 게시글입니다."),
+
     // 공통
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "요청 형식 또는 필드가 올바르지 않습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND"),
