@@ -27,6 +27,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     Optional<Post> findByPostIdAndStatusAndVisibilityInAndDeletedAtIsNull(
             Long postId, PostStatus status, List<PostVisibility> visibilities);
 
+    /**
+     * 포토맵 집계용(§3.11) — 사용자 소유 tripId 목록 중 발행·비삭제 Post만. status=PUBLISHED여도
+     * Post.tombstone()은 status를 바꾸지 않고 deletedAt만 세팅하므로 deletedAt 조건을 별도로 건다.
+     */
+    List<Post> findByTripIdInAndStatusAndDeletedAtIsNull(List<Long> tripIds, PostStatus status);
+
     /** 인기 점수(조회수×1+저장수×3+공유수×5) 내림차순 후보군. {@code HomePostReaderImpl}가 셔플 전 pool로 사용. */
     @Query("select p from Post p where p.status = :status and p.deletedAt is null and p.visibility in :visibilities "
             + "order by (p.viewCount + p.saveCount * 3 + p.shareCount * 5) desc")

@@ -10,5 +10,8 @@ public interface PostPlaceRepository extends JpaRepository<PostPlace, PostPlaceI
 
     List<PostPlace> findByIdPostId(Long postId);
 
+    /** 포토맵 집계용 배치 조회. backend-functional-spec-v10.md §3.11. */
+    List<PostPlace> findByIdPostIdIn(List<Long> postIds);
+
     void deleteByIdPostId(Long postId);
 }
