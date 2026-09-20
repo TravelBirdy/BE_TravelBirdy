@@ -10,8 +10,8 @@ public interface HomePostReader {
 
 	/**
 	 * @param viewerIdOrNull {@code /api/home}은 비로그인도 허용되므로(security: [{}, {bearerAuth}])
-	 *                       비로그인 요청은 {@code null}. {@code null}이면 {@link HomePostCard#savedRoute()}는
+	 *                       비로그인 요청은 {@code null}. {@code null}이면 {@link CommunityPostCard#savedRoute()}는
 	 *                       항상 {@code false}로 반환한다.
 	 */
-	List<HomePostCard> getHomeRecommendedPosts(int limit, Long viewerIdOrNull);
+	List<CommunityPostCard> getHomeRecommendedPosts(int limit, Long viewerIdOrNull);
 }
