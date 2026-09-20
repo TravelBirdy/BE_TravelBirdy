@@ -66,8 +66,18 @@ public class PostRouteSaveService {
                         });
     }
 
-    /** 중복 취소는 멱등하게 처리한다 — 저장돼 있지 않아도 그냥 204. */
+    /**
+     * 게시글 자체가 없으면(삭제 포함) {@code 404}다({@code SavedPlaceService.unsave()}와
+     * 동일한 판단 — canonical 원본이 없으면 취소도 의미가 없다). 존재하기만 하면 저장
+     * 여부·공개범위·차단관계와 무관하게 취소는 멱등하게 처리한다 — 저장 이후 원본이
+     * 비공개·차단으로 바뀌어도 사용자가 자신의 저장 기록을 지울 수는 있어야 한다(oriole0419
+     * PR#14 리뷰 — 이전엔 존재 검증 없이 항상 204였음).
+     */
     public void cancel(Long userId, Long postId) {
+        if (!postRepository.existsByPostIdAndDeletedAtIsNull(postId)) {
+            throw new BusinessException(ErrorCode.POST_NOT_FOUND);
+        }
+
         long deleted = savedRouteRepository.deleteByUserIdAndSourceTypeAndSourceId(
                 userId, SavedRouteSourceType.POST, postId);
         if (deleted > 0) {

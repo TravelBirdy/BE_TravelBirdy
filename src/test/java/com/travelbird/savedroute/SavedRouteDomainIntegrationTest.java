@@ -243,6 +243,31 @@ class SavedRouteDomainIntegrationTest {
     }
 
     @Test
+    void 존재하지_않는_게시글_경로_취소는_404다() throws Exception {
+        authenticateAs(SAVER_USER_ID);
+
+        mockMvc.perform(delete("/api/users/me/saved-routes/posts/{postId}", 999_999L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
+    }
+
+    @Test
+    void 삭제된_게시글_경로_취소도_404다() throws Exception {
+        Post post = createPublishedPost(AUTHOR_USER_ID, PostVisibility.PUBLIC);
+        authenticateAs(SAVER_USER_ID);
+        mockMvc.perform(put("/api/users/me/saved-routes/posts/{postId}", post.getPostId()))
+                .andExpect(status().isNoContent());
+        entityManager.createNativeQuery("update posts set deleted_at = now() where post_id = :id")
+                .setParameter("id", post.getPostId())
+                .executeUpdate();
+        entityManager.clear();
+
+        mockMvc.perform(delete("/api/users/me/saved-routes/posts/{postId}", post.getPostId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("POST_NOT_FOUND"));
+    }
+
+    @Test
     void 비로그인_저장_요청은_401이다() throws Exception {
         Post post = createPublishedPost(AUTHOR_USER_ID, PostVisibility.PUBLIC);
 
@@ -315,6 +340,28 @@ class SavedRouteDomainIntegrationTest {
     }
 
     @Test
+    void 최근_저장한_항목이_접근불가여도_size만큼_다음_항목으로_채워진다() throws Exception {
+        Post older = createPublishedPost(AUTHOR_USER_ID, PostVisibility.PUBLIC);
+        Post newer = createPublishedPost(AUTHOR_USER_ID, PostVisibility.PUBLIC);
+        authenticateAs(SAVER_USER_ID);
+        mockMvc.perform(put("/api/users/me/saved-routes/posts/{postId}", older.getPostId()))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(put("/api/users/me/saved-routes/posts/{postId}", newer.getPostId()))
+                .andExpect(status().isNoContent());
+
+        markBlocked(newer.getPostId()); // 가장 최근 저장(맨 앞에 와야 할) 항목을 접근 불가로 만든다.
+
+        // size=1로 요청해도, 맨 앞 항목이 self-heal로 빠지면 그 다음 항목까지 이어서 채워야
+        // 한다 — 한 번만 조회하고 끝내면 items=[]에 nextCursor만 남아 프론트가 끝으로
+        // 오해할 수 있다(oriole0419 PR#14 리뷰).
+        mockMvc.perform(get("/api/users/me/saved-routes").param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].sourceId").value(older.getPostId()))
+                .andExpect(jsonPath("$.nextCursor").doesNotExist());
+    }
+
+    @Test
     void 목록_조회_비로그인은_401이다() throws Exception {
         mockMvc.perform(get("/api/users/me/saved-routes"))
                 .andExpect(status().isUnauthorized());
@@ -367,14 +414,29 @@ class SavedRouteDomainIntegrationTest {
     }
 
     @Test
-    void 저장하지_않은_AI_미리보기_취소는_멱등하며_Part2를_호출하지_않는다() throws Exception {
+    void 저장하지_않았지만_유효한_AI_미리보기_취소는_Part2_검증을_거쳐_멱등하게_204다() throws Exception {
         Long previewId = 400L;
         authenticateAs(SAVER_USER_ID);
 
+        // 로컬 SavedRoute 행이 없어도(=이미 취소됐거나 애초에 저장한 적 없음) Part2 cancel()은
+        // 항상 호출한다 — makeTemporary()가 이미 TEMPORARY면 멱등이라 여기선 예외 없이 204다.
         mockMvc.perform(delete("/api/users/me/saved-routes/ai-previews/{previewId}", previewId))
                 .andExpect(status().isNoContent());
 
-        verify(aiPreviewSavedRouteService, never()).cancel(Mockito.anyLong(), Mockito.anyLong());
+        verify(aiPreviewSavedRouteService).cancel(eq(SAVER_USER_ID), eq(previewId));
+    }
+
+    @Test
+    void 존재하지_않거나_남의_AI_미리보기_취소는_Part2_예외가_그대로_전파된다() throws Exception {
+        Long previewId = 401L;
+        Mockito.doThrow(new com.travelbird.global.error.BusinessException(
+                        com.travelbird.global.error.ErrorCode.AI_PREVIEW_ACCESS_DENIED))
+                .when(aiPreviewSavedRouteService).cancel(SAVER_USER_ID, previewId);
+        authenticateAs(SAVER_USER_ID);
+
+        mockMvc.perform(delete("/api/users/me/saved-routes/ai-previews/{previewId}", previewId))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AI_PREVIEW_ACCESS_DENIED"));
     }
 
     @Test

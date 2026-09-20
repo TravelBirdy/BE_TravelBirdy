@@ -68,19 +68,44 @@ public class SavedRouteListService {
     private final FileLinkService fileLinkService;
     private final PlaceReader placeReader;
 
+    /**
+     * self-heal로 제외되는 항목이 있어도 요청한 {@code size}만큼 채워질 때까지(또는 더 이상
+     * 뒤에 데이터가 없을 때까지) 이어서 조회한다 — 한 번만 조회하고 self-heal로 줄어든 만큼
+     * 그대로 반환하면, 페이지가 {@code size}보다 적게 오거나 빈 배열에 {@code nextCursor}가
+     * 있는 경우가 생겨 프론트가 "마지막 페이지"로 착각할 수 있다(oriole0419 PR#14 리뷰).
+     */
     public SavedRouteListResponse list(Long cursorOrNull, Integer sizeOrNull, Long userId) {
         int size = clampSize(sizeOrNull);
-        Pageable pageable = PageRequest.of(0, size + 1);
+        List<SavedRouteListItem> items = new ArrayList<>();
+        Long cursor = cursorOrNull;
+        Long lastAttemptedId = null;
+        boolean exhausted = false;
 
-        List<SavedRoute> page = (cursorOrNull == null)
-                ? savedRouteRepository.findFirstPage(userId, pageable)
-                : findAfterCursor(cursorOrNull, userId, pageable);
+        while (items.size() < size && !exhausted) {
+            int remaining = size - items.size();
+            Pageable pageable = PageRequest.of(0, remaining + 1);
+            List<SavedRoute> page = (cursor == null)
+                    ? savedRouteRepository.findFirstPage(userId, pageable)
+                    : findAfterCursor(cursor, userId, pageable);
 
-        boolean hasNext = page.size() > size;
-        List<SavedRoute> content = hasNext ? page.subList(0, size) : page;
-        Long nextCursor = hasNext ? content.get(content.size() - 1).getSavedRouteId() : null;
+            if (page.isEmpty()) {
+                exhausted = true;
+                break;
+            }
 
-        List<SavedRouteListItem> items = assembleItems(content);
+            boolean fetchedHasMore = page.size() > remaining;
+            List<SavedRoute> content = fetchedHasMore ? page.subList(0, remaining) : page;
+            lastAttemptedId = content.get(content.size() - 1).getSavedRouteId();
+            cursor = lastAttemptedId;
+
+            items.addAll(assembleItems(content));
+
+            if (!fetchedHasMore) {
+                exhausted = true;
+            }
+        }
+
+        Long nextCursor = exhausted ? null : lastAttemptedId;
         return new SavedRouteListResponse(items, nextCursor);
     }
 
@@ -181,7 +206,7 @@ public class SavedRouteListService {
                 true,
                 post.getTitle(),
                 thumbnailUrlsByFileId.get(post.getRepresentativeFileId()),
-                new AuthorSummary(trip.ownerUserId(), "", ""), // TODO(UserReader 실구현 merge되면 교체)
+                new AuthorSummary(trip.ownerUserId(), null, null), // TODO(UserReader 실구현 merge되면 교체) — nullable(공통협의 4.1절), ""는 OpenAPI nullable enum 위반
                 region,
                 placeNamesByTripId.getOrDefault(trip.tripId(), List.of()),
                 themes,
