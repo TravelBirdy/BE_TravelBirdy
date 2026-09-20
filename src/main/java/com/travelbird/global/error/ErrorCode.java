@@ -119,6 +119,9 @@ public enum ErrorCode {
     INVALID_SHARE_CHANNEL(HttpStatus.BAD_REQUEST, "유효하지 않은 공유 채널입니다."),
     REPORT_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "이미 신고한 게시글입니다."),
 
+    // 경로 저장 (Part3, Phase5) — AI_PREVIEW_* 3개는 위 AI(Part2) 섹션 기존 코드를 그대로 재사용한다.
+    CANNOT_SAVE_OWN_ROUTE(HttpStatus.BAD_REQUEST, "자신의 게시글은 저장할 수 없습니다."),
+
     // 공통
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "요청 형식 또는 필드가 올바르지 않습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND"),

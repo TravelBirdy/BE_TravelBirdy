@@ -52,7 +52,7 @@ public class CommunityFeedService {
                 ? postRepository.findAllFeedFirstPage(PostStatus.PUBLISHED, VISIBLE_TO_COMMUNITY, excludedTripIds, pageable)
                 : findAllFeedAfterCursor(cursorOrNull, excludedTripIds, pageable);
 
-        return toPageResponse(page, size);
+        return toPageResponse(page, size, viewerIdOrNull);
     }
 
     private List<Post> findAllFeedAfterCursor(Long cursorPostId, List<Long> excludedTripIds, Pageable pageable) {
@@ -85,7 +85,7 @@ public class CommunityFeedService {
         List<Long> orderedIds = communityPopularFeedRepository.findPopularFeedPostIds(
                 from, to, excludedTripIds, cursorScore, cursorPublishedAt, cursorOrNull, pageable);
 
-        return toPageResponse(loadInOrder(orderedIds), size);
+        return toPageResponse(loadInOrder(orderedIds), size, viewerIdOrNull);
     }
 
     /**
@@ -105,7 +105,7 @@ public class CommunityFeedService {
                         PostStatus.PUBLISHED, VISIBLE_TO_COMMUNITY, includedTripIds, excludedTripIds, pageable)
                 : findFollowingFeedAfterCursor(cursorOrNull, includedTripIds, excludedTripIds, pageable);
 
-        return toPageResponse(page, size);
+        return toPageResponse(page, size, viewerId);
     }
 
     private List<Post> findFollowingFeedAfterCursor(Long cursorPostId, List<Long> includedTripIds,
@@ -144,11 +144,11 @@ public class CommunityFeedService {
         };
     }
 
-    private CommunityPostPageResponse toPageResponse(List<Post> page, int size) {
+    private CommunityPostPageResponse toPageResponse(List<Post> page, int size, Long viewerIdOrNull) {
         boolean hasNext = page.size() > size;
         List<Post> content = hasNext ? page.subList(0, size) : page;
         Long nextCursor = hasNext ? content.get(content.size() - 1).getPostId() : null;
-        return new CommunityPostPageResponse(cardAssembler.toCards(content), nextCursor);
+        return new CommunityPostPageResponse(cardAssembler.toCards(content, viewerIdOrNull), nextCursor);
     }
 
     private int clampSize(Integer sizeOrNull) {

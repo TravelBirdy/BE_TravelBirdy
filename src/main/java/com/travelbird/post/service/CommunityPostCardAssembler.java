@@ -6,6 +6,7 @@ import com.travelbird.file.api.FileLinkService;
 import com.travelbird.global.error.BusinessException;
 import com.travelbird.post.api.AuthorSummary;
 import com.travelbird.post.api.CommunityPostCard;
+import com.travelbird.post.api.PostSaveStatusReader;
 import com.travelbird.post.domain.Post;
 import com.travelbird.region.api.RegionReader;
 import com.travelbird.trip.api.TripPostReader;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * {@link Post} 목록을 {@link CommunityPostCard}로 변환한다. Home 추천({@link HomePostReaderImpl}),
@@ -27,7 +29,8 @@ import java.util.Objects;
  * 있지만 실제 구현체가 프로젝트 어디에도 없어서(Part1에 확인 요청함), 지금 의존성으로
  * 주입받으면 예전 {@code FileLinkService}처럼 스프링 컨텍스트 전체가 부팅 실패한다.
  * 실구현 merge되면 주입하고 채운다. {@code thumbnailUrl}은 {@code FileLinkService}
- * 실구현으로 채운다.
+ * 실구현으로 채운다. {@code savedRoute}는 {@code PostSaveStatusReader}(Phase5,
+ * SavedRoute 도메인 실구현)로 채운다.
  */
 @Component
 @RequiredArgsConstructor
@@ -38,13 +41,21 @@ public class CommunityPostCardAssembler {
     private final FileLinkService fileLinkService;
     private final TripPostReader tripPostReader;
     private final RegionReader regionReader;
+    private final PostSaveStatusReader postSaveStatusReader;
 
     public List<CommunityPostCard> toCards(List<Post> posts) {
+        return toCards(posts, null);
+    }
+
+    public List<CommunityPostCard> toCards(List<Post> posts, Long viewerIdOrNull) {
         Map<Long, String> thumbnailUrlsByFileId = resolveThumbnailUrls(posts);
         Map<Long, TripPostReader.TripPostSnapshot> tripsByPostId = resolveTripSnapshots(posts);
         Map<String, RegionSummary> regionsByCode = resolveRegions(tripsByPostId.values());
+        Set<Long> savedPostIds = postSaveStatusReader.findSavedPostIds(
+                viewerIdOrNull, posts.stream().map(Post::getPostId).toList());
         return posts.stream()
-                .map(post -> toCard(post, thumbnailUrlsByFileId, tripsByPostId.get(post.getPostId()), regionsByCode))
+                .map(post -> toCard(post, thumbnailUrlsByFileId, tripsByPostId.get(post.getPostId()), regionsByCode,
+                        savedPostIds.contains(post.getPostId())))
                 .toList();
     }
 
@@ -95,7 +106,8 @@ public class CommunityPostCardAssembler {
 
     private CommunityPostCard toCard(Post post, Map<Long, String> thumbnailUrlsByFileId,
                                       TripPostReader.TripPostSnapshot tripOrNull,
-                                      Map<String, RegionSummary> regionsByCode) {
+                                      Map<String, RegionSummary> regionsByCode,
+                                      boolean savedRoute) {
         RegionSummary region = tripOrNull == null
                 ? UNKNOWN_REGION
                 : regionsByCode.getOrDefault(tripOrNull.regionCode(), UNKNOWN_REGION);
@@ -114,7 +126,7 @@ public class CommunityPostCardAssembler {
                 post.getViewCount(),
                 post.getSaveCount(),
                 post.getShareCount(),
-                false // SavedRoute 도메인(Phase5) 미구현 — 항상 false
+                savedRoute
         );
     }
 }
