@@ -97,6 +97,25 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                                              Pageable pageable);
 
     /**
+     * 내 게시글 목록(§3.8.3) 첫 페이지. 공개범위·상태 필터 없이(DRAFT/PUBLISHED/BLOCKED
+     * 전부) 본인 소유 tripId만 걸러서 {@code createdAt DESC, postId DESC}로 정렬한다.
+     * DRAFT는 {@code publishedAt}이 없어서 그 컬럼으로는 정렬할 수 없다.
+     */
+    @Query("select p from Post p where p.tripId in :tripIds and p.deletedAt is null "
+            + "order by p.createdAt desc, p.postId desc")
+    List<Post> findMyPostsFirstPage(@Param("tripIds") List<Long> tripIds, Pageable pageable);
+
+    /** 내 게시글 목록 커서 이후 페이지. */
+    @Query("select p from Post p where p.tripId in :tripIds and p.deletedAt is null "
+            + "and (p.createdAt < :cursorCreatedAt "
+            + "or (p.createdAt = :cursorCreatedAt and p.postId < :cursorPostId)) "
+            + "order by p.createdAt desc, p.postId desc")
+    List<Post> findMyPostsAfterCursor(@Param("tripIds") List<Long> tripIds,
+                                       @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+                                       @Param("cursorPostId") Long cursorPostId,
+                                       Pageable pageable);
+
+    /**
      * 공유수 증가는 일반 {@code save()}(dirty-checking)가 아니라 벌크 업데이트로 처리한다 —
      * {@code Post}는 {@code @Version} 낙관적 락을 쓰는데, 인기 게시글에 동시 공유 클릭이
      * 몰릴 때마다 버전 충돌로 {@code 409}가 나는 건 카운터 증가 API로서 말이 안 된다.
