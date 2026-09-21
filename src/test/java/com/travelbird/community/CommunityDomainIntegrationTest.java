@@ -82,8 +82,11 @@ class CommunityDomainIntegrationTest {
         entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
                 .setParameter("id", OTHER_USER_ID)
                 .executeUpdate();
-        entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
+        entityManager.createNativeQuery(
+                        "insert into users (user_id, role, nickname, bird_type) values (:id, 'ROLE_USER', :nickname, :birdType)")
                 .setParameter("id", AUTHOR_USER_ID)
+                .setParameter("nickname", "새길동")
+                .setParameter("birdType", "OMOKNUNI")
                 .executeUpdate();
     }
 
@@ -180,6 +183,17 @@ class CommunityDomainIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].title").value("공개글"));
+    }
+
+    @Test
+    void 카드의_작성자_정보는_UserReader_실구현으로_채워진다() throws Exception {
+        createPublishedPost(AUTHOR_USER_ID, "공개글", "본문", PostVisibility.PUBLIC);
+
+        mockMvc.perform(get("/api/community/posts").param("tab", "ALL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].author.userId").value(AUTHOR_USER_ID))
+                .andExpect(jsonPath("$.items[0].author.nickname").value("새길동"))
+                .andExpect(jsonPath("$.items[0].author.birdType").value("OMOKNUNI"));
     }
 
     @Test

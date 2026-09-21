@@ -21,6 +21,8 @@ import com.travelbird.savedroute.domain.SavedRouteSourceType;
 import com.travelbird.savedroute.repository.SavedRouteRepository;
 import com.travelbird.social.api.SocialRelationReader;
 import com.travelbird.trip.api.TripPostReader;
+import com.travelbird.user.api.UserReader;
+import com.travelbird.user.api.UserSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -67,6 +69,7 @@ public class SavedRouteListService {
     private final RegionReader regionReader;
     private final FileLinkService fileLinkService;
     private final PlaceReader placeReader;
+    private final UserReader userReader;
 
     /**
      * self-heal로 제외되는 항목이 있어도 요청한 {@code size}만큼 채워질 때까지(또는 더 이상
@@ -170,6 +173,7 @@ public class SavedRouteListService {
         Map<String, RegionSummary> regionsByCode = resolveRegions(tripsByPostId.values());
         Map<Long, String> thumbnailUrlsByFileId = resolveThumbnailUrls(postsById.values());
         Map<Long, List<String>> placeNamesByTripId = resolvePlaceNames(tripsByPostId.values());
+        Map<Long, UserSummary> authorsByUserId = resolveAuthors(tripsByPostId.values());
 
         Map<Long, SavedRouteListItem> items = new HashMap<>();
         for (SavedRoute route : postRoutes) {
@@ -178,9 +182,31 @@ public class SavedRouteListService {
                 continue; // 접근 불가 판정된 항목
             }
             Post post = postsById.get(route.getSourceId());
-            items.put(route.getSavedRouteId(), toPostItem(route, post, trip, regionsByCode, thumbnailUrlsByFileId, placeNamesByTripId));
+            items.put(route.getSavedRouteId(),
+                    toPostItem(route, post, trip, regionsByCode, thumbnailUrlsByFileId, placeNamesByTripId, authorsByUserId));
         }
         return items;
+    }
+
+    /**
+     * 트립마다 해석된 {@code ownerUserId}의 distinct 집합만큼만 {@code getUserSummary}를
+     * 호출한다(배치 메서드가 계약에 없음, {@code CommunityPostCardAssembler}와 동일 이유).
+     */
+    private Map<Long, UserSummary> resolveAuthors(java.util.Collection<TripPostReader.TripPostSnapshot> trips) {
+        List<Long> authorUserIds = trips.stream()
+                .map(TripPostReader.TripPostSnapshot::ownerUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, UserSummary> authorsByUserId = new HashMap<>();
+        for (Long authorUserId : authorUserIds) {
+            try {
+                authorsByUserId.put(authorUserId, userReader.getUserSummary(authorUserId));
+            } catch (BusinessException e) {
+                // USER_NOT_FOUND 등 — 이 작성자만 placeholder로 빠진다.
+            }
+        }
+        return authorsByUserId;
     }
 
     private boolean isAccessible(Post post) {
@@ -193,12 +219,18 @@ public class SavedRouteListService {
     private SavedRouteListItem toPostItem(SavedRoute route, Post post, TripPostReader.TripPostSnapshot trip,
                                            Map<String, RegionSummary> regionsByCode,
                                            Map<Long, String> thumbnailUrlsByFileId,
-                                           Map<Long, List<String>> placeNamesByTripId) {
+                                           Map<Long, List<String>> placeNamesByTripId,
+                                           Map<Long, UserSummary> authorsByUserId) {
         RegionSummary region = regionsByCode.getOrDefault(trip.regionCode(), UNKNOWN_REGION);
         List<TravelTheme> themes = trip.themes().stream()
                 .map(this::parseThemeOrNull)
                 .filter(Objects::nonNull)
                 .toList();
+        UserSummary authorOrNull = authorsByUserId.get(trip.ownerUserId());
+        AuthorSummary author = new AuthorSummary(
+                trip.ownerUserId(),
+                authorOrNull == null ? null : authorOrNull.nickname(),
+                authorOrNull == null || authorOrNull.birdType() == null ? null : authorOrNull.birdType().name());
         return new SavedRouteListItem(
                 route.getSavedRouteId(),
                 SavedRouteSourceType.POST,
@@ -206,7 +238,7 @@ public class SavedRouteListService {
                 true,
                 post.getTitle(),
                 thumbnailUrlsByFileId.get(post.getRepresentativeFileId()),
-                new AuthorSummary(trip.ownerUserId(), null, null), // TODO(UserReader 실구현 merge되면 교체) — nullable(공통협의 4.1절), ""는 OpenAPI nullable enum 위반
+                author,
                 region,
                 placeNamesByTripId.getOrDefault(trip.tripId(), List.of()),
                 themes,
