@@ -1,21 +1,28 @@
-# Part2 integration checkpoint — 2026-09-21
+# Current checkpoint — 2026-09-21 local MySQL conversion
 
-- **Task**: Publish existing Part2 configuration first, then reproduce and repair the fresh MySQL Flyway chain; reuse team PR14/PR15 Readers.
-- **Status**: Part2 통합 오류 해결 완료 — local MySQL and real Context verified with PR14/15 integrated. Docker/Testcontainers verification remains unavailable; full clean test is not a PASS.
-- **Changed**: Configuration commit `3844fd5b5350c85de91df0a2d05cb0c478fef0b2` (`fix(part2): register time and AI client configuration`) contains only TimeConfig, AiClientConfig, application.properties, .env.example, Part2ConfigurationTest. Migration commit `db80f3db6cd68109bf0341dcccb7722ede16bb01` (`fix(part2): repair flyway migration chain`) contains only V7/V13/V14. Both pushed to `codex/part2-main-integration-20260920` without force.
-- **Contract**: No public/internal API, source document, DBML or Entity changes. V1 retains table/FK/Unique/order/composite-index definitions and DATETIME. Preserve error_message VARCHAR(500) and retention_status VARCHAR(30). V7 adds only theme CHECK; V13 adds request/status CHECKs and its existing intended user/requested-at index; V14 adds retention CHECK. No duplicate constraints, IF NOT EXISTS, DROP, repair, or V15 workaround.
-- **Tests**: MySQL 8.0.36 connection PASS; independent empty schema per attempt. V7, then V13, then V14 duplicate-table errors each reproduced. Final new schema: all 6 existing migrations V1/V2/V3/V7/V13/V14 PASS. Column metadata 7/7, CHECKs 4/4, quota index PASS. Real Spring Context: Clock (single UTC), InternalAiProperties, DataSource, Flyway validate, JPA validate, TripService, AiRecommendationService and both real Readers PASS. clean compileJava PASS; clean compileTestJava PASS; Trip 20/20; AI 39/39; internal authentication 4/4; TravelbirdBackendApplicationTests 1/1; general tests without container classes 182/182. Final unfiltered clean test: 189 total, 182 pass, 7 initialization failures, 0 skipped; all 7 are missing Docker environment failures.
-- **Decision**: User explicitly authorized rewriting V7/V13/V14 in the MVP local-only DB situation after reproducing duplicate CREATE errors. No development database was dropped, reset, repaired or migrated. Existing .env remains ignored and untracked; secret values were not printed or committed. Independent migration diff review found no Part2 blocker.
-- **Deferred**: Testcontainers MySQL tests require Docker. The 7 affected classes are PlaceControllerIntegrationTest, PlaceDomainIntegrationTest, SavedPlaceControllerIntegrationTest, TourApiPlaceImportServiceIntegrationTest, CommunityDomainIntegrationTest, PostDomainIntegrationTest and SavedRouteDomainIntegrationTest. Root DBML has a pre-existing documentation omission for the already intended V13 user/requested-at index; pre-existing user changes were preserved. Temporary verification schemas are retained.
-- **Next**: Integrate the team PR14/PR15 through the normal team workflow, then rerun the unchanged Testcontainers suite with Docker. No remaining Part2 policy decision or observed Part1/Part3 code blocker at the tested revisions.
+- **Task**: Move all prior Part2 integration commits to chun9930, delete the previous branch, and run every integration test on local MySQL 8 without Docker/Testcontainers/H2.
+- **Status**: Implementation and verification complete; all changes pushed to chun9930. PR publication is separately blocked by GitHub connector write permission (403); no PR20 creation is claimed.
+- **Changed**: Test commit `a8c5b19d0e0d534416d1fbb95df039aa5d6f5cf0` (`test: run integration suites on isolated local MySQL`), 17 files: seven integration test connection blocks; five support/safety-test classes; test spring.factories; build.gradle; README; .env.example; task packet. No test body/assertion weakened or skipped. Existing config/Flyway commits 3844fd5, db80f3d, 015ecea retained. Team main(PR15) and PR14 original history reused without new Readers.
+- **Contract**: No production/API/authoritative source/DBML/migration changes in this conversion. DATETIME, error_message VARCHAR(500), retention_status VARCHAR(30) and V7/V13/V14 repairs preserved. The user's explicit local-MySQL policy supersedes earlier Testcontainers instructions for this task.
+- **Tests**: clean compileJava PASS; clean compileTestJava PASS; Trip 20/20; AI 39/39; internal authentication 4/4; seven integration suites 99/99; safety regressions 7/7. Final unfiltered clean test: 288 total, 288 passed, 0 failures/errors/skipped. ApplicationContext test also uses the same isolated local DB. Every context runs real Flyway migrations V1/V2/V3/V7/V13/V14 and JPA validate.
+- **Decision**: Class-specific Spring context cache key creates fresh travelbird_test_UUID database; test-only env TEST_DB_HOST/PORT/USERNAME/PASSWORD, no DB_URL fallback. Existing method rollback maintained. Whole context and pools close before owned schema deletion. Exact UUID-name guard and successful CREATE ownership required; creation/cleanup failure paths tested and independently reviewed.
+- **Deferred**: PR creation/metadata publishing requires permitted GitHub write access. The pre-existing src/mysqlIntegrationTest tree is not in the current Gradle source sets and was not modified. No remaining test failure or policy choice.
+- **Next**: Publish the already pushed chun9930 changes as the requested PR once authorized GitHub write access is available. PR numbers are allocated by GitHub.
 
-## Integration evidence boundary
+## Actual MySQL results and development DB protection
 
-The published Part2 branch contains only Part2 fixes and verification documentation. For integration verification, a separate detached worktree combined `origin/main` `4e5791a2df426abd494cc5b886a624b9f71cddad`, PR14 `e07f5498f0977ffbec585a5654c75a29cffad647`, PR15 `60bc49040fd6bf9b7090be3a6c069a4281505073`, and the exact Part2 migration bytes. Team PR merge commits were not pushed or copied into Part2 commits.
+| Suite | Passed | Failed / skipped |
+| --- | ---: | ---: |
+| PlaceControllerIntegrationTest | 4 | 0 / 0 |
+| PlaceDomainIntegrationTest | 6 | 0 / 0 |
+| SavedPlaceControllerIntegrationTest | 13 | 0 / 0 |
+| TourApiPlaceImportServiceIntegrationTest | 7 | 0 / 0 |
+| CommunityDomainIntegrationTest | 38 | 0 / 0 |
+| PostDomainIntegrationTest | 9 | 0 / 0 |
+| SavedRouteDomainIntegrationTest | 22 | 0 / 0 |
 
-- PR14: `com.travelbird.savedroute.service.SavedRouteReferenceReaderImpl`, real repository query; no false/empty fallback.
-- PR15: `com.travelbird.user.service.UserReaderImpl`, actual implementation; its 6 tests passed in general and final runs.
-- Missing Readers in the old snapshot are resolved by the existing team PRs, not reimplemented here.
-- Context used the isolated MySQL schema and temporary verification AI settings. This verifies wiring, not a live external AI service.
+MySQL server: 8.0.36. Focused integration run created/dropped 7/7 schemas. Final run created/dropped 8/8 actual schemas including the application context suite. Information_schema confirmed zero remaining generated travelbird_test_UUID schemas. Development travelbird was inspected using a read-only JDBC transaction before/after; both snapshots contained 0 tables/0 rows and identical SHA-256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855. No development DB creation/deletion/migration/test writes occurred.
 
-Local evidence: `C:/final_TravelBirdy/part2-validation-20260921/REPORT.md`, stage logs and redacted XML copies. No permanent test or production code was changed to replace Testcontainers with local MySQL/H2.
+Removed all three dependencies: spring-boot-testcontainers, org.testcontainers:junit-jupiter, org.testcontainers:mysql. Source/build search finds no remaining specified Testcontainers usage or H2 dependency. All original test fixtures/assertions compare identically after removing container setup.
+
+Remote codex/part2-main-integration-20260920 was deleted only after its complete ancestry was pushed to chun9930; its local branch was also deleted while files were preserved. Original divergent local chun9930 was retained as codex/chun9930-local-preserved-20260921. Current worktree: C:/final_TravelBirdy/part2/.worktrees/chun9930-local-mysql. Local evidence: C:/final_TravelBirdy/part2-validation-20260921/local-final-summary.json and local-reports-final/.
