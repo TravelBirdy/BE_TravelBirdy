@@ -14,13 +14,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,26 +28,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 전국 포토맵/지역별 방문 장소 조회 통합 테스트. backend-functional-spec-v10.md §3.11.
  * {@code CommunityDomainIntegrationTest}/{@code SavedRouteDomainIntegrationTest}와 동일한
- * Testcontainers+MockMvc+native SQL fixture 패턴.
+ * Local MySQL+MockMvc+native SQL fixture 패턴.
  */
-@Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class PhotoMapDomainIntegrationTest {
-
-    @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
-            .withDatabaseName("travelbird")
-            .withUsername("travelbird")
-            .withPassword("travelbird");
-
-    @DynamicPropertySource
-    static void datasourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getPassword);
-    }
 
     private static final String SIGUNGU_CODE_A = "11110";
     private static final String SIGUNGU_CODE_B = "26440";
