@@ -3,9 +3,9 @@
 - **Task**: Align PR20 with latest main and the direct MySQL 8 policy; preserve other Parts except the explicitly requested PhotoMap connection setup.
 - **Status**: Latest main aa46c70 merged (4e7537e). PhotoMap now uses the common LocalMySqlContextCustomizerFactory; fixtures/assertions unchanged.
 - **Changed**: README explains full replacement of Testcontainers, personal TEST_DB_* settings/permissions and schema isolation; PhotoMap connection annotations/imports/container block removed; docs/tasks excluded from PR; this status and daily-log retained.
-- **Contract**: No new production/API/migration changes. PR19 PostCreateIntegrationTest remains a follow-up in its owning PR. Part2 local DBML now includes V13's existing idx_ai_job_user_requested (user_id, requested_at); that ignored local DBML is not added wholesale to this PR.
+- **Contract**: No new production/API/migration changes. PR19 PostCreateIntegrationTest remains a follow-up in its owning PR. Part2 local DBML now includes V13's existing idx_ai_job_user_requested (user_id, requested_at); the DBML is now tracked in this PR following the explicit request to publish the corrected documents.
 - **Tests**: Fresh clean compileTestJava PASS; clean test 302/302 PASS, failures/errors/skipped 0. PhotoMap 14/14 PASS; previous seven MySQL integration suites 99/99 PASS. Source/build scan finds no remaining active Testcontainers usage or dependency. No skipped tests or weakened assertions.
-- **Decision**: The user-specified C:/TravelBirdy/.worktrees/task9-post-community/docs/harness/02-backend-rules.md test-policy paragraph was updated locally; all other Harness files and existing changes there were preserved. This separate local document is not part of the PR repository.
+- **Decision**: The user corrected the Harness path to C:/final_TravelBirdy/part2/docs/harness/02-backend-rules.md. Its MySQL policy is now tracked in this PR; the earlier wrong-path edit was restored. Only this Harness file and the Part2 DBML were imported; other local documents remain excluded.
 - **Deferred**: PR19 conversion belongs to the subsequent PR. No merge of PR20 into main was performed.
 - **Next**: Review PR20 with the updated README and actual MySQL test results.
 
