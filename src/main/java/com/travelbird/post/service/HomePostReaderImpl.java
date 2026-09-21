@@ -42,6 +42,6 @@ public class HomePostReaderImpl implements HomePostReader {
         Collections.shuffle(shuffled);
         List<Post> picked = shuffled.stream().limit(limit).toList();
 
-        return cardAssembler.toCards(picked);
+        return cardAssembler.toCards(picked, viewerIdOrNull);
     }
 }

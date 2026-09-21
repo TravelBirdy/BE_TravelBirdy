@@ -104,4 +104,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Modifying
     @Query("update Post p set p.viewCount = p.viewCount + 1 where p.postId = :postId and p.deletedAt is null")
     int incrementViewCount(@Param("postId") Long postId);
+
+    /** 경로 저장 시 saveCount 증가(낙관적 락 우회) — backend-functional-spec-v10.md §3.10.1. */
+    @Modifying
+    @Query("update Post p set p.saveCount = p.saveCount + 1 where p.postId = :postId")
+    int incrementSaveCount(@Param("postId") Long postId);
+
+    /** 경로 저장 취소 시 saveCount 감소. 0 미만으로 내려가지 않도록 방어한다. */
+    @Modifying
+    @Query("update Post p set p.saveCount = p.saveCount - 1 where p.postId = :postId and p.saveCount > 0")
+    int decrementSaveCount(@Param("postId") Long postId);
 }
