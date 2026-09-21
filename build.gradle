@@ -77,11 +77,6 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	// 10. Testcontainers (MySQL 통합 검증 — Flyway V1 baseline 필요, 그전까지는 skip)
-	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-	testImplementation 'org.testcontainers:junit-jupiter'
-	testImplementation 'org.testcontainers:mysql'
-
 	// 11. AWS SDK v2 (S3 — 이미지 업로드 Presigned URL 발급/검증, 3.5.1)
 	implementation platform('software.amazon.awssdk:bom:2.29.52')
 	implementation 'software.amazon.awssdk:s3'

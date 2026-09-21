@@ -13,13 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -35,24 +30,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * addFilters=false로 Security 필터 체인을 끄고, {@code SecurityContextHolder}에 직접
  * 인증 정보를 채워 컨트롤러/서비스 로직만 검증한다 — 실제 로그인(JWT)은 B4 몫.
  */
-@Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class SavedPlaceControllerIntegrationTest {
 
-    @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
-            .withDatabaseName("travelbird")
-            .withUsername("travelbird")
-            .withPassword("travelbird");
-
-    @DynamicPropertySource
-    static void datasourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getPassword);
-    }
 
     private static final String SIGUNGU_CODE = "11110";
     private static final Long USER_ID = 1L;

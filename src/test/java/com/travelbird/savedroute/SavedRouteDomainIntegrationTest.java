@@ -17,14 +17,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -41,30 +36,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * 경로 저장·취소·목록 조회 통합 테스트. backend-functional-spec-v10.md §3.10.
- * {@code CommunityDomainIntegrationTest}와 동일한 Testcontainers+native SQL fixture 패턴.
+ * {@code CommunityDomainIntegrationTest}와 동일한 격리된 로컬 MySQL+native SQL fixture 패턴.
  *
  * <p>AI_PREVIEW 흐름은 {@link AiPreviewSavedRouteService}(Part2)를 {@code @MockitoBean}으로
  * 대체한다 — 실제 AI 미리보기 fixture(ai_recommendation_jobs/ai_trip_previews 등)를 세팅하지
  * 않고 Part3 쪽 위임·멱등 로직만 검증한다(파트 간 호출 경계 — Part2 내부 로직은 Part2 책임).
  */
-@Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class SavedRouteDomainIntegrationTest {
 
-    @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
-            .withDatabaseName("travelbird")
-            .withUsername("travelbird")
-            .withPassword("travelbird");
-
-    @DynamicPropertySource
-    static void datasourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getPassword);
-    }
 
     private static final String SIGUNGU_CODE = "11110";
     private static final Long SAVER_USER_ID = 1L;

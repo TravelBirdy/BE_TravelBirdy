@@ -1,0 +1,2 @@
+org.springframework.test.context.ContextCustomizerFactory=com.travelbird.support.LocalMySqlContextCustomizerFactory
+org.springframework.test.context.TestExecutionListener=com.travelbird.support.LocalMySqlContextCleanupListener
