@@ -15,6 +15,7 @@ import com.travelbird.post.repository.PostImageRepository;
 import com.travelbird.post.repository.PostPlaceRepository;
 import com.travelbird.post.repository.PostRepository;
 import com.travelbird.trip.api.TripPostReader;
+import com.travelbird.user.api.UserReader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -51,8 +52,11 @@ public class PostCreateService {
     private final TripPostReader tripPostReader;
     private final FileLinkService fileLinkService;
     private final PostContentValidator contentValidator;
+    private final UserReader userReader;
 
     public CreatePostResponse create(Long userId, CreatePostRequest request) {
+        userReader.validateActiveUser(userId); // 탈퇴·정지 유저가 유효 토큰으로 작성하는 것을 막는다(oriole0419 PR#19 리뷰).
+
         if (request.tripId() == null || request.visibility() == null || request.publish() == null) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR);
         }
@@ -61,6 +65,13 @@ public class PostCreateService {
         List<Long> placeIds = normalize(request.placeIds());
         List<String> hashtags = normalize(request.hashtags());
         boolean publish = Boolean.TRUE.equals(request.publish());
+
+        if (request.representativeFileId() != null && !imageFileIds.contains(request.representativeFileId())) {
+            // imageFileIds에 없는 대표 이미지를 따로 검증·링크하면 실질적으로 10장 제한을
+            // 우회할 수 있다(oriole0419 PR#19 리뷰) — 대표 이미지는 첨부 이미지 목록에
+            // 포함된 것만 허용한다.
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
 
         contentValidator.validateTitle(request.title());
         contentValidator.validateContent(request.content());
@@ -79,11 +90,9 @@ public class PostCreateService {
 
         List<Long> tripPlaceIds = resolveTripPlaceIds(trip, placeIds);
 
-        List<Long> filesToValidate = new ArrayList<>(imageFileIds);
-        if (request.representativeFileId() != null && !filesToValidate.contains(request.representativeFileId())) {
-            filesToValidate.add(request.representativeFileId());
-        }
-        fileLinkService.validateLinkableFiles(userId, filesToValidate, FilePurpose.POST);
+        // representativeFileId는 위에서 imageFileIds에 포함된 것만 허용하도록 이미 검증했으므로
+        // imageFileIds 하나만 검증·링크하면 대표 이미지도 함께 커버된다.
+        fileLinkService.validateLinkableFiles(userId, imageFileIds, FilePurpose.POST);
 
         Post post = Post.create(request.tripId(), request.title(), request.content(),
                 request.representativeFileId(), request.visibility(), publish);
@@ -104,8 +113,8 @@ public class PostCreateService {
         for (String hashtag : hashtags) {
             postHashtagRepository.save(PostHashtag.of(post.getPostId(), hashtag));
         }
-        if (!filesToValidate.isEmpty()) {
-            fileLinkService.markLinked(filesToValidate);
+        if (!imageFileIds.isEmpty()) {
+            fileLinkService.markLinked(imageFileIds);
         }
 
         return new CreatePostResponse(post.getPostId(), post.getStatus(), post.getVisibility(),

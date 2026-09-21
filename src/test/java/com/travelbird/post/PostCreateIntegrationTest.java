@@ -364,4 +364,35 @@ class PostCreateIntegrationTest {
                         .content(requestBody(tripId, "제목", "본문", false)))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void 탈퇴한_사용자는_유효한_토큰이어도_작성할_수_없다() throws Exception {
+        Long tripId = createTripFixture(USER_ID);
+        entityManager.createNativeQuery("update users set status = 'WITHDRAWN' where user_id = :id")
+                .setParameter("id", USER_ID)
+                .executeUpdate();
+        entityManager.clear();
+        authenticateAs(USER_ID);
+
+        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody(tripId, "제목", "본문", false)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("USER_NOT_ACTIVE"));
+    }
+
+    @Test
+    void 대표이미지가_imageFileIds에_없으면_400이다() throws Exception {
+        Long tripId = createTripFixture(USER_ID);
+        Long representativeFileId = createFileFixture(USER_ID, "POST", "UPLOADED");
+        Long otherFileId = createFileFixture(USER_ID, "POST", "UPLOADED");
+        authenticateAs(USER_ID);
+
+        String body = "{\"tripId\":" + tripId + ",\"title\":\"제목\",\"content\":\"본문\","
+                + "\"representativeFileId\":" + representativeFileId + ",\"imageFileIds\":[" + otherFileId + "],"
+                + "\"visibility\":\"PUBLIC\",\"publish\":false}";
+
+        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
 }
