@@ -1,13 +1,13 @@
 # Current checkpoint — 2026-09-21 local MySQL conversion
 
 - **Task**: Move all prior Part2 integration commits to chun9930, delete the previous branch, and run every integration test on local MySQL 8 without Docker/Testcontainers/H2.
-- **Status**: Implementation and verification complete; all changes pushed to chun9930. PR publication is separately blocked by GitHub connector write permission (403); no PR20 creation is claimed.
+- **Status**: Implementation and verification complete; all changes pushed to chun9930 and published as PR #20: https://github.com/TravelBirdy/BE_TravelBirdy/pull/20 (chun9930 -> main).
 - **Changed**: Test commit `a8c5b19d0e0d534416d1fbb95df039aa5d6f5cf0` (`test: run integration suites on isolated local MySQL`), 17 files: seven integration test connection blocks; five support/safety-test classes; test spring.factories; build.gradle; README; .env.example; task packet. No test body/assertion weakened or skipped. Existing config/Flyway commits 3844fd5, db80f3d, 015ecea retained. Team main(PR15) and PR14 original history reused without new Readers.
 - **Contract**: No production/API/authoritative source/DBML/migration changes in this conversion. DATETIME, error_message VARCHAR(500), retention_status VARCHAR(30) and V7/V13/V14 repairs preserved. The user's explicit local-MySQL policy supersedes earlier Testcontainers instructions for this task.
 - **Tests**: clean compileJava PASS; clean compileTestJava PASS; Trip 20/20; AI 39/39; internal authentication 4/4; seven integration suites 99/99; safety regressions 7/7. Final unfiltered clean test: 288 total, 288 passed, 0 failures/errors/skipped. ApplicationContext test also uses the same isolated local DB. Every context runs real Flyway migrations V1/V2/V3/V7/V13/V14 and JPA validate.
 - **Decision**: Class-specific Spring context cache key creates fresh travelbird_test_UUID database; test-only env TEST_DB_HOST/PORT/USERNAME/PASSWORD, no DB_URL fallback. Existing method rollback maintained. Whole context and pools close before owned schema deletion. Exact UUID-name guard and successful CREATE ownership required; creation/cleanup failure paths tested and independently reviewed.
-- **Deferred**: PR creation/metadata publishing requires permitted GitHub write access. The pre-existing src/mysqlIntegrationTest tree is not in the current Gradle source sets and was not modified. No remaining test failure or policy choice.
-- **Next**: Publish the already pushed chun9930 changes as the requested PR once authorized GitHub write access is available. PR numbers are allocated by GitHub.
+- **Deferred**: The pre-existing src/mysqlIntegrationTest tree is not in the current Gradle source sets and was not modified. No remaining test failure or policy choice.
+- **Next**: Review PR #20 through the normal team workflow; no merge was requested or performed.
 
 ## Actual MySQL results and development DB protection
 
