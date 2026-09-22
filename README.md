@@ -27,5 +27,5 @@ $env:TEST_DB_PASSWORD = [System.Net.NetworkCredential]::new('', $credential).Pas
 
 PR #16의 PhotoMap 테스트는 최신 main 병합 후 공통 `LocalMySqlContextCustomizerFactory`를 사용하도록 연결부만 전환했습니다. 기존 fixture와 assertion은 유지합니다. 아직 main에 병합되지 않은 PR #19의 `PostCreateIntegrationTest`는 이번 변경 대상에 포함하지 않으며, 해당 PR 반영 시 같은 공통 설정을 사용해야 합니다. 다른 Part의 비즈니스 로직과 API 계약은 변경하지 않습니다.
 
-V13의 `idx_ai_job_user_requested (user_id, requested_at)`는 기존 DB index이며, 공유 DBML(`docs/database/travelbird.dbml`)의 누락된 index 표기만 동일하게 보완합니다. 새로운 migration이나 DB 제약은 추가하지 않습니다. 프로젝트 규칙에 따라 `docs/harness/08-current-status.md`와 `daily-log`를 유지하고, 작업 계획용 `docs/tasks` 문서는 PR에서 제외합니다.
-공유 테스트 정책은 docs/harness/02-backend-rules.md에 기록합니다. 사용자 요청에 따라 이 Harness 파일과 DBML을 PR에 포함하며 다른 로컬 작업 문서는 추가하지 않습니다.
+V13의 `idx_ai_job_user_requested (user_id, requested_at)`는 기존 DB index이며, 공유 DBML(`docs/database/travelbird.dbml`)의 누락된 index 표기만 동일하게 보완합니다. 새로운 migration이나 DB 제약은 추가하지 않습니다. 작업용 문서인 `docs/harness`, `daily-log`, `docs/tasks`는 로컬에만 보관하고 저장소에서는 제외합니다.
+공유 테스트 정책과 실행 방법은 이 README에 기록하고, DBML의 인덱스 보완은 PR에 유지합니다.

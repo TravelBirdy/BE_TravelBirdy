@@ -44,3 +44,8 @@ out/
 .env.*
 !.env.example
 *.pem
+
+# Local working policies and logs
+/docs/harness/
+/daily-log/
+/docs/tasks/
