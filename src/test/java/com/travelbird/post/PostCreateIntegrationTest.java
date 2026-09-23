@@ -13,13 +13,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,26 +29,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 게시글 작성·임시 저장·발행(`POST /api/posts`) 통합 테스트.
  * backend-functional-spec-v10.md §3.8.1. 다른 도메인 통합 테스트와 동일한
- * Testcontainers+MockMvc+native SQL fixture 패턴.
+ * Local MySQL+MockMvc+native SQL fixture 패턴.
  */
-@Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class PostCreateIntegrationTest {
-
-    @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
-            .withDatabaseName("travelbird")
-            .withUsername("travelbird")
-            .withPassword("travelbird");
-
-    @DynamicPropertySource
-    static void datasourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getPassword);
-    }
 
     private static final String SIGUNGU_CODE = "11110";
     private static final Long USER_ID = 1L;
