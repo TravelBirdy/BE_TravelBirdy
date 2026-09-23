@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import com.travelbird.post.api.UserContentStatistics;
+import com.travelbird.post.api.UserContentStatisticsReader;
 import com.travelbird.user.domain.User;
 import com.travelbird.common.enums.BirdType;
 import com.travelbird.user.domain.UserStatus;
