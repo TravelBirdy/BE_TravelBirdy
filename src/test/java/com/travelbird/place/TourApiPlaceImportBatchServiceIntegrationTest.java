@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -84,6 +85,7 @@ class TourApiPlaceImportBatchServiceIntegrationTest {
     }
 
     @Test
+    @Transactional
     void 카테고리_제외_규칙에_매치되면_실패_목록에_사유와_함께_남는다() {
         entityManager.createNativeQuery(
                         "insert into place_category_mapping_rules (priority, include_keyword, target_category, excluded) "
