@@ -9,34 +9,21 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Testcontainers
+/**
+ * {@link TourApiPlaceImportBatchService}는 행마다 별도 트랜잭션을 여는 것이 핵심 동작이라
+ * (한 행이 실패해도 이후 행 처리에 영향을 주지 않음을 검증), 클래스 전체를 하나의 롤백
+ * 트랜잭션으로 감싸는 다른 통합테스트와 달리 이 클래스는 클래스 레벨 {@code @Transactional}을
+ * 쓰지 않는다. 실제 행 격리를 검증할 필요가 없는 테스트만 메서드 레벨로 개별 롤백한다.
+ */
 @SpringBootTest
 class TourApiPlaceImportBatchServiceIntegrationTest {
-
-    @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
-            .withDatabaseName("travelbird")
-            .withUsername("travelbird")
-            .withPassword("travelbird");
-
-    @DynamicPropertySource
-    static void datasourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getPassword);
-    }
 
     private static final String SIGUNGU_CODE = "11110";
 
@@ -55,6 +42,7 @@ class TourApiPlaceImportBatchServiceIntegrationTest {
     }
 
     @Test
+    @Transactional
     void 전부_성공하면_totalCount_successCount가_같고_실패는_없다() {
         TourApiImportReport report = tourApiPlaceImportBatchService.importAll(List.of(
                 row("100", "경복궁", SIGUNGU_CODE),
@@ -69,19 +57,25 @@ class TourApiPlaceImportBatchServiceIntegrationTest {
 
     @Test
     void 존재하지_않는_지역코드는_실패로_기록되고_나머지_행_처리는_계속된다() {
-        TourApiImportReport report = tourApiPlaceImportBatchService.importAll(List.of(
-                row("100", "경복궁", SIGUNGU_CODE),
-                row("999", "존재안하는지역장소", "99999"),
-                row("200", "남산타워", SIGUNGU_CODE)));
+        // 행마다 독립 트랜잭션으로 실행되는지 검증하는 테스트라, 트랜잭션 없이 실제로
+        // 커밋시켜 확인한다 — 끝나고 직접 정리한다.
+        try {
+            TourApiImportReport report = tourApiPlaceImportBatchService.importAll(List.of(
+                    row("100", "경복궁", SIGUNGU_CODE),
+                    row("999", "존재안하는지역장소", "99999"),
+                    row("200", "남산타워", SIGUNGU_CODE)));
 
-        assertThat(report.totalCount()).isEqualTo(3);
-        assertThat(report.successCount()).isEqualTo(2);
-        assertThat(report.failureCount()).isEqualTo(1);
-        assertThat(report.failures()).hasSize(1);
-        assertThat(report.failures().get(0).externalPlaceId()).isEqualTo("999");
-        assertThat(report.mappings()).extracting("externalPlaceId")
-                .containsExactlyInAnyOrder("100", "200");
-        assertThat(placeExternalIdRepository.findAll()).hasSize(2);
+            assertThat(report.totalCount()).isEqualTo(3);
+            assertThat(report.successCount()).isEqualTo(2);
+            assertThat(report.failureCount()).isEqualTo(1);
+            assertThat(report.failures()).hasSize(1);
+            assertThat(report.failures().get(0).externalPlaceId()).isEqualTo("999");
+            assertThat(report.mappings()).extracting("externalPlaceId")
+                    .containsExactlyInAnyOrder("100", "200");
+            assertThat(placeExternalIdRepository.findAll()).hasSize(2);
+        } finally {
+            placeRepository.deleteAll(); // place_external_ids는 ON DELETE CASCADE로 함께 삭제된다.
+        }
     }
 
     @Test
