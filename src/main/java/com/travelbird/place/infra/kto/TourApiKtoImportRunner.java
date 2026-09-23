@@ -10,7 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -21,7 +23,8 @@ import java.util.List;
  * 시 1회 실행되고, 평소 서버 기동에서는 등록되지 않는다(초기 적재 전용 — public/internal
  * API로는 노출하지 않는다). AI·관광데이터 팀이 넘긴 9-field JSON 파일을 읽어
  * {@link TourApiPlaceImportBatchService#importAll}을 실행하고, 결과(mapping 전체/실패
- * 목록/집계)를 JSON 파일로 남긴다.
+ * 목록/집계)를 JSON 파일로 남긴다. 일회성 배치 작업이라 완료 후 애플리케이션을 종료한다
+ * (웹 서버로 계속 떠 있지 않는다).
  */
 @Component
 @ConditionalOnProperty(name = "import.kto.enabled", havingValue = "true")
@@ -31,6 +34,7 @@ public class TourApiKtoImportRunner implements ApplicationRunner {
 
     private final TourApiPlaceImportBatchService tourApiPlaceImportBatchService;
     private final ObjectMapper objectMapper;
+    private final ConfigurableApplicationContext applicationContext;
 
     @Value("${import.kto.source-file}")
     private String sourceFilePath;
@@ -53,5 +57,7 @@ public class TourApiKtoImportRunner implements ApplicationRunner {
         log.info("TourAPI KTO Import 완료: 총 {}건 / 성공 {}건 / 실패 {}건 -> {}",
                 report.totalCount(), report.successCount(), report.failureCount(),
                 reportFile.getAbsolutePath());
+
+        System.exit(SpringApplication.exit(applicationContext, () -> 0));
     }
 }
