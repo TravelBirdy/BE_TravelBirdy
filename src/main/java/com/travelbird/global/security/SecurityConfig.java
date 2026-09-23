@@ -41,6 +41,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/kakao/login", "/api/auth/token/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/home").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/trips/*", "/api/trips/*/days/*/route").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts/*", "/api/community/posts", "/api/community/posts/search").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/posts/*/views", "/api/posts/*/shares").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
