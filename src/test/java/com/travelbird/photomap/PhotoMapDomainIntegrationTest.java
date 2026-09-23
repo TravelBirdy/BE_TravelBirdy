@@ -51,8 +51,6 @@ class PhotoMapDomainIntegrationTest {
 
     @BeforeEach
     void seedFixtures() {
-        insertSigungu(SIGUNGU_CODE_A, "종로구");
-        insertSigungu(SIGUNGU_CODE_B, "강서구");
         insertUser(USER_ID);
         insertUser(OTHER_USER_ID);
     }
@@ -65,14 +63,6 @@ class PhotoMapDomainIntegrationTest {
     private void authenticateAs(Long userId) {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(userId, null, List.of()));
-    }
-
-    private void insertSigungu(String code, String name) {
-        entityManager.createNativeQuery(
-                        "insert into sigungu_master (sigungu_code, sigungu_name) values (:code, :name)")
-                .setParameter("code", code)
-                .setParameter("name", name)
-                .executeUpdate();
     }
 
     private void insertUser(Long userId) {
