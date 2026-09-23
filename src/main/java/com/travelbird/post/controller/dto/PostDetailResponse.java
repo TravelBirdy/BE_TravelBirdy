@@ -8,7 +8,6 @@ import java.util.List;
 
 /** backend-functional-spec-v10.md §3.8.3. */
 public record PostDetailResponse(
-        Long postId,
         AuthorSummary author,
         String title,
         String content,

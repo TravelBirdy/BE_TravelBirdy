@@ -81,9 +81,7 @@ public class PostMyListService {
         return posts.stream()
                 .map(post -> {
                     TripPostReader.TripPostSnapshot trip = tripsByPostId.get(post.getPostId());
-                    RegionSummary region = trip == null
-                            ? UNKNOWN_REGION
-                            : regionsByCode.getOrDefault(trip.regionCode(), UNKNOWN_REGION);
+                    RegionSummary region = regionsByCode.getOrDefault(trip.regionCode(), UNKNOWN_REGION);
                     return new MyPostItem(
                             post.getPostId(),
                             post.getTripId(),
@@ -110,18 +108,15 @@ public class PostMyListService {
     }
 
     /**
-     * 트립 하나를 못 찾아도(자연 삭제되지 않는 한 발생하지 않아야 하지만) 그 항목만
-     * placeholder 지역으로 빠지게 하고 페이지 전체가 깨지지 않게 한다
-     * ({@code CommunityPostCardAssembler}와 동일 패턴).
+     * {@code posts.trip_id}는 NOT NULL이고 {@code trips.trip_id}를 FK(ON DELETE
+     * RESTRICT)로 참조하므로, 정상 데이터에서 Post는 있는데 연결된 Trip만 없는 상황은
+     * 생기지 않는다. 예외를 삼켜 조용히 placeholder로 감추지 않고 그대로 전파한다
+     * (chun9930 PR#22 리뷰) — Trip 조회가 실패하면 목록 요청 전체가 실패한다.
      */
     private Map<Long, TripPostReader.TripPostSnapshot> resolveTripSnapshots(List<Post> posts) {
         Map<Long, TripPostReader.TripPostSnapshot> tripsByPostId = new HashMap<>();
         for (Post post : posts) {
-            try {
-                tripsByPostId.put(post.getPostId(), tripPostReader.getTripForPost(post.getTripId()));
-            } catch (BusinessException e) {
-                // TRIP_NOT_FOUND 등 — 이 항목만 UNKNOWN_REGION으로 빠진다.
-            }
+            tripsByPostId.put(post.getPostId(), tripPostReader.getTripForPost(post.getTripId()));
         }
         return tripsByPostId;
     }

@@ -10,13 +10,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,27 +24,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 게시글 목록·상세 조회(`GET /api/users/me/posts`, `GET /api/posts/{postId}`) 통합 테스트.
  * backend-functional-spec-v10.md §3.8.3. `PostCreateIntegrationTest`와 동일한
- * Testcontainers+MockMvc+native SQL fixture 패턴 — 실제 `POST /api/posts`를 통해
+ * Local MySQL+MockMvc+native SQL fixture 패턴 — 실제 `POST /api/posts`를 통해
  * 게시글을 만들어서(직접 insert보다 실제 흐름을 그대로 탄다) place/image까지 채운다.
+ * 비로그인 접근이 실제 보안 필터를 통과하는지는 {@link PostDetailSecurityFilterIntegrationTest}에서
+ * 별도로 검증한다(이 클래스는 인증 fixture 편의를 위해 addFilters=false로 필터를 끈다).
  */
-@Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class PostReadIntegrationTest {
-
-    @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
-            .withDatabaseName("travelbird")
-            .withUsername("travelbird")
-            .withPassword("travelbird");
-
-    @DynamicPropertySource
-    static void datasourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getPassword);
-    }
 
     private static final String SIGUNGU_CODE = "11110";
     private static final Long USER_ID = 1L;

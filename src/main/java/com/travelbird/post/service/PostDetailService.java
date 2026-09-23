@@ -10,6 +10,7 @@ import com.travelbird.post.api.AuthorSummary;
 import com.travelbird.post.controller.dto.PostDetailPlaceResponse;
 import com.travelbird.post.controller.dto.PostDetailResponse;
 import com.travelbird.post.controller.dto.PostDetailRouteDay;
+import com.travelbird.post.controller.dto.PostRouteCoordinates;
 import com.travelbird.post.domain.Post;
 import com.travelbird.post.domain.PostImage;
 import com.travelbird.post.domain.PostPlace;
@@ -19,7 +20,6 @@ import com.travelbird.post.repository.PostImageRepository;
 import com.travelbird.post.repository.PostPlaceRepository;
 import com.travelbird.post.repository.PostRepository;
 import com.travelbird.trip.api.TripPostReader;
-import com.travelbird.trip.dto.response.Coordinates;
 import com.travelbird.user.api.UserReader;
 import com.travelbird.user.api.UserSummary;
 import lombok.RequiredArgsConstructor;
@@ -92,7 +92,6 @@ public class PostDetailService {
         List<PostDetailRouteDay> route = buildRoute(placeSnapshots, placesById);
 
         return new PostDetailResponse(
-                post.getPostId(),
                 author,
                 post.getTitle(),
                 post.getContent(),
@@ -195,11 +194,11 @@ public class PostDetailService {
         }
         List<PostDetailRouteDay> route = new ArrayList<>();
         for (Map.Entry<Integer, List<TripPostReader.TripPostPlaceSnapshot>> entry : byDay.entrySet()) {
-            List<Coordinates> points = entry.getValue().stream()
+            List<PostRouteCoordinates> points = entry.getValue().stream()
                     .sorted(Comparator.comparingInt(TripPostReader.TripPostPlaceSnapshot::visitOrder))
                     .map(snapshot -> placesById.get(snapshot.placeId()))
                     .filter(java.util.Objects::nonNull)
-                    .map(place -> new Coordinates(place.latitude(), place.longitude()))
+                    .map(place -> new PostRouteCoordinates(place.latitude(), place.longitude()))
                     .toList();
             route.add(new PostDetailRouteDay(entry.getKey(), points));
         }
