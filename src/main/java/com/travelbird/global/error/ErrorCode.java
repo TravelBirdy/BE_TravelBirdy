@@ -65,6 +65,7 @@ public enum ErrorCode {
     POST_IMAGE_LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_ENTITY, "이미지는 최대 10장까지 첨부할 수 있습니다."),
     POST_MODIFICATION_CONFLICT(HttpStatus.CONFLICT, "다른 요청에 의해 게시글이 먼저 수정되었습니다."),
     POST_ROUTE_LOCKED_AFTER_PUBLISH(HttpStatus.CONFLICT, "발행된 게시글의 경로 관련 항목은 변경할 수 없습니다."),
+    POST_PLACE_NOT_IN_TRIP(HttpStatus.BAD_REQUEST, "선택한 장소가 해당 여행 일정에 포함되어 있지 않습니다."),
 
     // Trip (Part2) — TRIP_ACCESS_DENIED는 Part2가 이미 정의해서 Post 쪽 중복 정의를 없애고 그대로 재사용한다.
     INVALID_COMPANION_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 동행 유형입니다."),
