@@ -59,6 +59,15 @@ class FileLinkServiceImplTest {
     }
 
     @Test
+    void validateLinkableFiles_duplicateFileId_treatsAsSingleFile() {
+        when(fileAssetRepository.findAllById(List.of(10L))).thenReturn(List.of(uploadedFile(10L, FilePurpose.TRIP_PLACE)));
+
+        fileLinkService.validateLinkableFiles(1L, List.of(10L, 10L), FilePurpose.TRIP_PLACE);
+
+        verify(fileAssetRepository).findAllById(List.of(10L));
+    }
+
+    @Test
     void validateLinkableFiles_missingFile_throwsFileAccessDenied() {
         when(fileAssetRepository.findAllById(List.of(10L, 20L))).thenReturn(List.of(uploadedFile(10L, FilePurpose.TRIP_PLACE)));
 

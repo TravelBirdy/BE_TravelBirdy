@@ -37,6 +37,11 @@ public class FileLinkServiceImpl implements FileLinkService {
      * 소유권, UPLOADED 상태, purpose 일치 여부를 검증한다 — 셋 중 하나라도 안 맞으면
      * {@code 403 FILE_ACCESS_DENIED}다(기능명세서 3.7.6 "파일 소유권, 업로드 완료 상태와
      * 목적을 검증한다" — 세 검증 실패를 하나의 코드로 묶어서 쓴다).
+     *
+     * <p>같은 fileId가 중복으로 들어와도 유효한 파일이면 통과한다 — 중복 제거 전
+     * {@code fileIds.size()}와 조회된 파일 수를 그대로 비교하면, 소비 Part가 같은
+     * fileId를 두 번 보냈을 때 실제로는 없는 파일이 없는데도 개수가 안 맞아
+     * {@code FILE_ACCESS_DENIED}로 오판했다(PR#19 리뷰에서 발견).
      */
     @Override
     @Transactional(readOnly = true)
@@ -44,8 +49,9 @@ public class FileLinkServiceImpl implements FileLinkService {
         if (fileIds == null || fileIds.isEmpty()) {
             return;
         }
-        List<FileAsset> files = fileAssetRepository.findAllById(fileIds);
-        if (files.size() != fileIds.size()) {
+        List<Long> distinctFileIds = fileIds.stream().distinct().toList();
+        List<FileAsset> files = fileAssetRepository.findAllById(distinctFileIds);
+        if (files.size() != distinctFileIds.size()) {
             throw new BusinessException(ErrorCode.FILE_ACCESS_DENIED);
         }
         for (FileAsset file : files) {
