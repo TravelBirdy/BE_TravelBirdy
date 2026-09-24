@@ -8,7 +8,6 @@ import com.travelbird.place.service.PlaceExternalIdMapping;
 import com.travelbird.place.service.TourApiPlaceImportRow;
 import com.travelbird.place.service.TourApiPlaceImportService;
 import jakarta.persistence.EntityManager;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,15 +33,6 @@ class TourApiPlaceImportServiceIntegrationTest {
     private PlaceExternalIdRepository placeExternalIdRepository;
     @Autowired
     private EntityManager entityManager;
-
-    @BeforeEach
-    void seedSigungu() {
-        entityManager.createNativeQuery(
-                        "insert into sigungu_master (sigungu_code, sigungu_name) values (:code, :name)")
-                .setParameter("code", SIGUNGU_CODE)
-                .setParameter("name", "종로구")
-                .executeUpdate();
-    }
 
     private TourApiPlaceImportRow row(String externalId, String name, String address,
                                        BigDecimal lat, BigDecimal lng) {

@@ -46,13 +46,6 @@ class PlaceDomainIntegrationTest {
 
     @BeforeEach
     void seedFixtures() {
-        // region 도메인(PR1)이 아직 이 브랜치에 없어 sigungu_master 테스트용 행은 네이티브
-        // SQL로 직접 넣는다 — FK(places.sigungu_code) 제약 통과용, 실제 269개 seed와 무관.
-        entityManager.createNativeQuery(
-                        "insert into sigungu_master (sigungu_code, sigungu_name) values (:code, :name)")
-                .setParameter("code", SIGUNGU_CODE)
-                .setParameter("name", "종로구")
-                .executeUpdate();
         // saved_places.user_id -> users.user_id FK 통과용 — user 도메인(PR2 범위 밖)도 없어
         // 네이티브 SQL로 최소 행만 넣는다.
         entityManager.createNativeQuery(
