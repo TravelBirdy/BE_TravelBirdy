@@ -46,11 +46,6 @@ class PostReadIntegrationTest {
     @BeforeEach
     void seedFixtures() {
         entityManager.createNativeQuery(
-                        "insert into sigungu_master (sigungu_code, sigungu_name) values (:code, :name)")
-                .setParameter("code", SIGUNGU_CODE)
-                .setParameter("name", "종로구")
-                .executeUpdate();
-        entityManager.createNativeQuery(
                         "insert into users (user_id, role, nickname, bird_type) values (:id, 'ROLE_USER', :nickname, :birdType)")
                 .setParameter("id", USER_ID)
                 .setParameter("nickname", "새길동")

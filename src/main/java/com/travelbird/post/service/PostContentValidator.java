@@ -53,6 +53,22 @@ public class PostContentValidator {
         }
     }
 
+    /**
+     * {@code imageFileIds}에 같은 fileId가 중복되면 거부한다. {@code FileLinkService.
+     * validateLinkableFiles}는 PR#24부터 중복 fileId를 통과시키는데, {@code post_images}는
+     * {@code PRIMARY KEY(post_id, file_id)} + {@code UNIQUE(file_id)}라 중복이 그대로
+     * 저장 단계까지 가면 처리되지 않은 {@code DataIntegrityViolationException}으로 샌다 —
+     * 저장 전에 명확한 400으로 막는다.
+     */
+    public void validateNoDuplicateImages(List<Long> imageFileIds) {
+        if (imageFileIds == null) {
+            return;
+        }
+        if (imageFileIds.stream().distinct().count() != imageFileIds.size()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+    }
+
     /** {@code publish=true}면 제목·본문이 공백이 아니어야 한다. */
     public void validateRequiredForPublish(String title, String content, boolean publish) {
         if (publish && (!StringUtils.hasText(title) || !StringUtils.hasText(content))) {

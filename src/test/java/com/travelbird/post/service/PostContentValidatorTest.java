@@ -73,11 +73,21 @@ class PostContentValidatorTest {
     }
 
     @Test
+    void 중복_없는_이미지는_통과하고_중복이_있으면_실패한다() {
+        validator.validateNoDuplicateImages(List.of(1L, 2L, 3L));
+        assertThatThrownBy(() -> validator.validateNoDuplicateImages(List.of(1L, 2L, 1L)))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.VALIDATION_ERROR);
+    }
+
+    @Test
     void null이나_빈_목록은_카운트_검증을_통과한다() {
         validator.validateHashtags(null);
         validator.validateImageCount(null);
+        validator.validateNoDuplicateImages(null);
         validator.validateHashtags(List.of());
         validator.validateImageCount(List.of());
+        validator.validateNoDuplicateImages(List.of());
         assertThat(true).isTrue();
     }
 }
