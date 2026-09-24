@@ -10,6 +10,8 @@ import com.travelbird.post.api.PostSaveStatusReader;
 import com.travelbird.post.domain.Post;
 import com.travelbird.region.api.RegionReader;
 import com.travelbird.trip.api.TripPostReader;
+import com.travelbird.user.api.UserReader;
+import com.travelbird.user.api.UserSummary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -25,10 +27,9 @@ import java.util.Set;
  *
  * <p>{@code region}/{@code companionType}/{@code themes}/{@code author.userId}는
  * {@code TripPostReader}(Part2, PR#5 merge됨)로 채운다. {@code author.nickname}/
- * {@code birdType}은 여전히 placeholder다 — {@code UserReader} 인터페이스는 merge돼
- * 있지만 실제 구현체가 프로젝트 어디에도 없어서(Part1에 확인 요청함), 지금 의존성으로
- * 주입받으면 예전 {@code FileLinkService}처럼 스프링 컨텍스트 전체가 부팅 실패한다.
- * 실구현 merge되면 주입하고 채운다. {@code thumbnailUrl}은 {@code FileLinkService}
+ * {@code birdType}은 {@code UserReader}(PR#15 merge됨)로 채운다 — 배치 조회 메서드가
+ * 계약에 없어서 카드에 등장하는 distinct 작성자 수만큼 개별 호출한다(트립 조회와 동일한
+ * 이유로 감수, 클래스 상단 참고). {@code thumbnailUrl}은 {@code FileLinkService}
  * 실구현으로 채운다. {@code savedRoute}는 {@code PostSaveStatusReader}(Phase5,
  * SavedRoute 도메인 실구현)로 채운다.
  */
@@ -42,6 +43,7 @@ public class CommunityPostCardAssembler {
     private final TripPostReader tripPostReader;
     private final RegionReader regionReader;
     private final PostSaveStatusReader postSaveStatusReader;
+    private final UserReader userReader;
 
     public List<CommunityPostCard> toCards(List<Post> posts) {
         return toCards(posts, null);
@@ -51,11 +53,12 @@ public class CommunityPostCardAssembler {
         Map<Long, String> thumbnailUrlsByFileId = resolveThumbnailUrls(posts);
         Map<Long, TripPostReader.TripPostSnapshot> tripsByPostId = resolveTripSnapshots(posts);
         Map<String, RegionSummary> regionsByCode = resolveRegions(tripsByPostId.values());
+        Map<Long, UserSummary> authorsByUserId = resolveAuthors(tripsByPostId.values());
         Set<Long> savedPostIds = postSaveStatusReader.findSavedPostIds(
                 viewerIdOrNull, posts.stream().map(Post::getPostId).toList());
         return posts.stream()
                 .map(post -> toCard(post, thumbnailUrlsByFileId, tripsByPostId.get(post.getPostId()), regionsByCode,
-                        savedPostIds.contains(post.getPostId())))
+                        authorsByUserId, savedPostIds.contains(post.getPostId())))
                 .toList();
     }
 
@@ -104,9 +107,32 @@ public class CommunityPostCardAssembler {
         return regionsByCode;
     }
 
+    /**
+     * 트립마다 해석된 {@code ownerUserId}의 distinct 집합만큼만 {@code getUserSummary}를
+     * 호출한다. 유저를 못 찾는 경우(자연 삭제되지 않는 한 발생하지 않아야 함)는 그 작성자만
+     * placeholder로 빠지게 하고 페이지 전체가 깨지지 않게 한다.
+     */
+    private Map<Long, UserSummary> resolveAuthors(java.util.Collection<TripPostReader.TripPostSnapshot> trips) {
+        List<Long> authorUserIds = trips.stream()
+                .map(TripPostReader.TripPostSnapshot::ownerUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, UserSummary> authorsByUserId = new HashMap<>();
+        for (Long authorUserId : authorUserIds) {
+            try {
+                authorsByUserId.put(authorUserId, userReader.getUserSummary(authorUserId));
+            } catch (BusinessException e) {
+                // USER_NOT_FOUND 등 — 이 작성자만 placeholder로 빠진다.
+            }
+        }
+        return authorsByUserId;
+    }
+
     private CommunityPostCard toCard(Post post, Map<Long, String> thumbnailUrlsByFileId,
                                       TripPostReader.TripPostSnapshot tripOrNull,
                                       Map<String, RegionSummary> regionsByCode,
+                                      Map<Long, UserSummary> authorsByUserId,
                                       boolean savedRoute) {
         RegionSummary region = tripOrNull == null
                 ? UNKNOWN_REGION
@@ -114,12 +140,17 @@ public class CommunityPostCardAssembler {
         String companionType = tripOrNull == null ? "" : tripOrNull.companionType();
         List<String> themes = tripOrNull == null ? List.of() : List.copyOf(tripOrNull.themes());
         Long authorUserId = tripOrNull == null ? null : tripOrNull.ownerUserId();
+        UserSummary authorOrNull = authorUserId == null ? null : authorsByUserId.get(authorUserId);
+        AuthorSummary author = new AuthorSummary(
+                authorUserId,
+                authorOrNull == null ? null : authorOrNull.nickname(),
+                authorOrNull == null || authorOrNull.birdType() == null ? null : authorOrNull.birdType().name());
 
         return new CommunityPostCard(
                 post.getPostId(),
                 thumbnailUrlsByFileId.get(post.getRepresentativeFileId()),
                 post.getTitle(),
-                new AuthorSummary(authorUserId, "", ""), // TODO(UserReader 실구현 merge되면 교체): nickname/birdType
+                author,
                 region,
                 companionType,
                 themes,

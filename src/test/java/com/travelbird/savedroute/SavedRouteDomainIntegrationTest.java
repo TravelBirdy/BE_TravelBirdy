@@ -75,8 +75,11 @@ class SavedRouteDomainIntegrationTest {
         entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
                 .setParameter("id", SAVER_USER_ID)
                 .executeUpdate();
-        entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
+        entityManager.createNativeQuery(
+                        "insert into users (user_id, role, nickname, bird_type) values (:id, 'ROLE_USER', :nickname, :birdType)")
                 .setParameter("id", AUTHOR_USER_ID)
+                .setParameter("nickname", "새길동")
+                .setParameter("birdType", "OMOKNUNI")
                 .executeUpdate();
     }
 
@@ -297,6 +300,8 @@ class SavedRouteDomainIntegrationTest {
                 .andExpect(jsonPath("$.items[0].title").value("제목"))
                 .andExpect(jsonPath("$.items[0].region.sigunguCode").value(SIGUNGU_CODE))
                 .andExpect(jsonPath("$.items[0].author.userId").value(AUTHOR_USER_ID))
+                .andExpect(jsonPath("$.items[0].author.nickname").value("새길동"))
+                .andExpect(jsonPath("$.items[0].author.birdType").value("OMOKNUNI"))
                 .andExpect(jsonPath("$.items[0].editable").value(false))
                 .andExpect(jsonPath("$.items[0].sourceAvailable").value(true));
     }
