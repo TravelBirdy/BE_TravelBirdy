@@ -53,11 +53,7 @@ class PostCreateIntegrationTest {
 
     @BeforeEach
     void seedFixtures() {
-        entityManager.createNativeQuery(
-                        "insert into sigungu_master (sigungu_code, sigungu_name) values (:code, :name)")
-                .setParameter("code", SIGUNGU_CODE)
-                .setParameter("name", "종로구")
-                .executeUpdate();
+        // V15 supplies the region fixture.
         entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
                 .setParameter("id", USER_ID)
                 .executeUpdate();

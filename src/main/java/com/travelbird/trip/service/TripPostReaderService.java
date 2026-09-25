@@ -5,17 +5,21 @@ import com.travelbird.global.error.ErrorCode;
 import com.travelbird.trip.api.TripPostReader;
 import com.travelbird.trip.entity.Trip;
 import com.travelbird.trip.repository.TripRepository;
+import com.travelbird.trip.repository.TripPostSnapshotRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 @Service
 public class TripPostReaderService implements TripPostReader {
   private final TripRepository trips;
 
-  public TripPostReaderService(TripRepository trips) {
+  private final TripPostSnapshotRepository snapshots;
+  public TripPostReaderService(TripRepository trips, TripPostSnapshotRepository snapshots) {
     this.trips = trips;
+    this.snapshots = snapshots;
   }
 
   @Override
@@ -52,6 +56,17 @@ public class TripPostReaderService implements TripPostReader {
     return trips.findAllByUserId(userId).stream()
         .map(Trip::getId)
         .toList();
+  }
+
+  @Override
+  @Transactional(propagation = Propagation.MANDATORY)
+  public TripPostSnapshot lockOwnedTripForPost(Long userId, Long tripId) {
+    TripPostSnapshot trip = snapshots.lockHeader(tripId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.TRIP_NOT_FOUND));
+    if (!java.util.Objects.equals(trip.ownerUserId(), userId)) {
+      throw new BusinessException(ErrorCode.TRIP_ACCESS_DENIED);
+    }
+    return snapshots.readCurrentContents(trip);
   }
 
   private Trip requireTrip(Long tripId) {
