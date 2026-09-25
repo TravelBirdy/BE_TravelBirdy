@@ -40,11 +40,7 @@ class PostDetailSecurityFilterIntegrationTest {
     @Test
     @Transactional
     void 비로그인도_실제_보안_필터를_통과해_공개_게시글_상세를_조회할_수_있다() throws Exception {
-        entityManager.createNativeQuery(
-                        "insert into sigungu_master (sigungu_code, sigungu_name) values (:code, :name)")
-                .setParameter("code", SIGUNGU_CODE)
-                .setParameter("name", "종로구")
-                .executeUpdate();
+        // V15 supplies the region fixture.
         entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
                 .setParameter("id", USER_ID)
                 .executeUpdate();

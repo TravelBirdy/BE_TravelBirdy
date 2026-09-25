@@ -10,6 +10,13 @@ public interface TripPostReader {
 
   TripPostSnapshot getOwnedTripForPost(Long userId, Long tripId);
 
+  /**
+   * Locks the Trip for first publication inside the caller's existing write transaction.
+   * The caller must persist the Post in that same transaction. Ordinary DRAFT saves use
+   * getOwnedTripForPost instead. Cancellation validation remains the caller's policy.
+   */
+  TripPostSnapshot lockOwnedTripForPost(Long userId, Long tripId);
+
   TripPostSnapshot getTripForPost(Long tripId);
 
   List<TripPostPlaceSnapshot> getTripPlaceSnapshot(Long tripId);
