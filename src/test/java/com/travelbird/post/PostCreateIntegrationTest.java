@@ -53,11 +53,6 @@ class PostCreateIntegrationTest {
 
     @BeforeEach
     void seedFixtures() {
-        entityManager.createNativeQuery(
-                        "insert into sigungu_master (sigungu_code, sigungu_name) values (:code, :name)")
-                .setParameter("code", SIGUNGU_CODE)
-                .setParameter("name", "종로구")
-                .executeUpdate();
         entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
                 .setParameter("id", USER_ID)
                 .executeUpdate();
@@ -371,6 +366,20 @@ class PostCreateIntegrationTest {
         String body = "{\"tripId\":" + tripId + ",\"title\":\"제목\",\"content\":\"본문\","
                 + "\"representativeFileId\":" + representativeFileId + ",\"imageFileIds\":[" + otherFileId + "],"
                 + "\"visibility\":\"PUBLIC\",\"publish\":false}";
+
+        mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void imageFileIds에_중복된_fileId가_있으면_400이다() throws Exception {
+        Long tripId = createTripFixture(USER_ID);
+        Long fileId = createFileFixture(USER_ID, "POST", "UPLOADED");
+        authenticateAs(USER_ID);
+
+        String body = "{\"tripId\":" + tripId + ",\"title\":\"제목\",\"content\":\"본문\","
+                + "\"imageFileIds\":[" + fileId + "," + fileId + "],\"visibility\":\"PUBLIC\",\"publish\":false}";
 
         mockMvc.perform(post("/api/posts").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())

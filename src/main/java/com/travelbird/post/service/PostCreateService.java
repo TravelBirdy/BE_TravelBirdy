@@ -77,6 +77,7 @@ public class PostCreateService {
         contentValidator.validateContent(request.content());
         contentValidator.validateHashtags(hashtags);
         contentValidator.validateImageCount(imageFileIds);
+        contentValidator.validateNoDuplicateImages(imageFileIds);
         contentValidator.validateRequiredForPublish(request.title(), request.content(), publish);
 
         TripPostReader.TripPostSnapshot trip = tripPostReader.getOwnedTripForPost(userId, request.tripId());
