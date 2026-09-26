@@ -33,6 +33,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      */
     List<Post> findByTripIdInAndStatusAndDeletedAtIsNull(List<Long> tripIds, PostStatus status);
 
+    /** 마이페이지 기록 수(§3.14.1) — 사용자 소유 tripId 목록 중 해당 status·비삭제 Post 개수. */
+    long countByTripIdInAndStatusAndDeletedAtIsNull(List<Long> tripIds, PostStatus status);
+
     /** 인기 점수(조회수×1+저장수×3+공유수×5) 내림차순 후보군. {@code HomePostReaderImpl}가 셔플 전 pool로 사용. */
     @Query("select p from Post p where p.status = :status and p.deletedAt is null and p.visibility in :visibilities "
             + "order by (p.viewCount + p.saveCount * 3 + p.shareCount * 5) desc")
