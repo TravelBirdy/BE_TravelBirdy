@@ -19,6 +19,16 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Optional<Post> findByTripIdAndDeletedAtIsNull(Long tripId);
 
+    /** Scalar current read: publication gates must not reuse an older RR/JPA snapshot. */
+    @Query(value = "select post_id as postId, published_at as publishedAt from posts "
+            + "where trip_id = :tripId and deleted_at is null for share", nativeQuery = true)
+    Optional<RouteLockState> findCurrentRouteLockByTripId(@Param("tripId") Long tripId);
+
+    interface RouteLockState {
+        Long getPostId();
+        LocalDateTime getPublishedAt();
+    }
+
     Optional<Post> findByPostIdAndDeletedAtIsNull(Long postId);
 
     boolean existsByPostIdAndDeletedAtIsNull(Long postId);
