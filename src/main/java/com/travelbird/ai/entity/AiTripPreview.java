@@ -33,7 +33,7 @@ public class AiTripPreview {
   public void reconcileRoute(List<AiPreviewDay> requested,LocalDateTime now){var existingDays=new HashMap<Integer,AiPreviewDay>();for(var day:days)existingDays.put(day.getDayNumber(),day);var existingPlaces=new HashMap<Long,AiPreviewPlace>();days.stream().flatMap(day->day.getPlaces().stream()).forEach(place->{place.stageOrder();existingPlaces.put(place.getPlaceId(),place);});var finalDays=new ArrayList<AiPreviewDay>();for(var incoming:requested){var target=existingDays.remove(incoming.getDayNumber());if(target==null){target=new AiPreviewDay(incoming.getDayNumber());target.attach(this);}var wanted=new ArrayList<>(incoming.getPlaces());for(var desired:wanted){var current=existingPlaces.remove(desired.getPlaceId());if(current==null)target.add(desired);else current.relocate(target,desired.getVisitOrder());}finalDays.add(target);}for(var obsolete:existingPlaces.values())obsolete.getDay().getPlaces().remove(obsolete);days.removeAll(existingDays.values());for(var day:finalDays)if(!days.contains(day))days.add(day);updatedAt=now;}
   public void addDay(AiPreviewDay day){day.attach(this);days.add(day);}
   public void applied(Trip trip,LocalDateTime now){appliedTrip=trip;appliedAt=now;updatedAt=now;}
-  public void expireContent(LocalDateTime now){days.clear();hashtags.clear();tripTitle=null;summary=null;expiresAt=now;updatedAt=now;job.expire(now);}
+  public void expireContent(LocalDateTime now){if(job.getStatus()==BackendAiJobStatus.EXPIRED)return;days.clear();hashtags.clear();tripTitle=null;summary=null;expiresAt=now;updatedAt=now;job.expire(now);}
 }
 
 

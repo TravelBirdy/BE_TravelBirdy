@@ -41,9 +41,7 @@ import java.util.Objects;
 /**
  * 저장한 경로 목록 조회. backend-functional-spec-v10.md §3.10.2.
  *
- * <p>{@code sourceType=AI_PREVIEW} 항목은 표시용 데이터(제목/지역/장소/테마)를 주는 Part2
- * 계약이 아직 없어({@code ai.api}엔 저장/취소 계약만 있음) title/region/placeNames/themes를
- * placeholder로 채운다 — Part2에 새 계약을 요청해둔 상태다({@code editable}만 정확히 true).
+ * <p>AI Preview display values are read from the current owned Preview through Part2.
  *
  * <p>{@code sourceAvailable}은 저장 시점엔 항상 true지만, 원본 Post가 이후 삭제·비공개
  * 전환되거나 작성자와 차단 관계가 되면 이 목록 조회 시점에 그걸 감지해서(현재로선 Post
@@ -70,6 +68,7 @@ public class SavedRouteListService {
     private final FileLinkService fileLinkService;
     private final PlaceReader placeReader;
     private final UserReader userReader;
+    private final com.travelbird.ai.api.AiPreviewDisplayReader aiPreviewDisplayReader;
 
     /**
      * self-heal로 제외되는 항목이 있어도 요청한 {@code size}만큼 채워질 때까지(또는 더 이상
@@ -128,7 +127,7 @@ public class SavedRouteListService {
 
         for (SavedRoute route : routes) {
             if (route.getSourceType() == SavedRouteSourceType.AI_PREVIEW) {
-                itemsByRouteId.put(route.getSavedRouteId(), aiPreviewPlaceholderItem(route));
+                itemsByRouteId.put(route.getSavedRouteId(), aiPreviewItem(route));
             }
         }
 
@@ -248,22 +247,22 @@ public class SavedRouteListService {
         );
     }
 
-    private SavedRouteListItem aiPreviewPlaceholderItem(SavedRoute route) {
-        return new SavedRouteListItem(
-                route.getSavedRouteId(),
-                SavedRouteSourceType.AI_PREVIEW,
-                route.getSourceId(),
-                true,
-                "", // TODO(Part2 AiPreviewDisplayReader 계약 생기면 교체)
-                null,
-                null,
-                UNKNOWN_REGION,
-                List.of(),
-                List.of(),
-                route.getSavedAt(),
-                route.getUpdatedAt(),
-                true // AI_PREVIEW는 본인 소유 Preview만 저장 가능하므로 항상 editable.
-        );
+    private SavedRouteListItem aiPreviewItem(SavedRoute route) {
+        var summary = aiPreviewDisplayReader.findOwned(route.getUserId(), route.getSourceId());
+        if (summary.isEmpty()) {
+            route.markUnavailable();
+            return null;
+        }
+        var preview = summary.orElseThrow();
+        Map<Long, String> namesById = new HashMap<>();
+        for (PlaceContract place : placeReader.getPlaces(preview.placeIds(), route.getUserId())) {
+            namesById.put(place.placeId(), place.name());
+        }
+        var names = preview.placeIds().stream().map(namesById::get).filter(Objects::nonNull).toList();
+        return new SavedRouteListItem(route.getSavedRouteId(), SavedRouteSourceType.AI_PREVIEW,
+                route.getSourceId(), true, preview.title(), null, null,
+                regionReader.getRegion(preview.regionCode()), names, preview.themes(),
+                route.getSavedAt(), preview.updatedAt(), true);
     }
 
     private TravelTheme parseThemeOrNull(String raw) {

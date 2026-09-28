@@ -65,6 +65,9 @@ class SavedRouteDomainIntegrationTest {
     @MockitoBean
     private AiPreviewSavedRouteService aiPreviewSavedRouteService;
 
+    @MockitoBean
+    private com.travelbird.ai.api.AiPreviewDisplayReader aiPreviewDisplayReader;
+
     @BeforeEach
     void seedFixtures() {
         entityManager.createNativeQuery("insert into users (user_id, role) values (:id, 'ROLE_USER')")
@@ -424,6 +427,9 @@ class SavedRouteDomainIntegrationTest {
     @Test
     void AI_미리보기_목록_항목은_editable이_true다() throws Exception {
         Long previewId = 500L;
+        org.mockito.Mockito.when(aiPreviewDisplayReader.findOwned(SAVER_USER_ID, previewId))
+                .thenReturn(java.util.Optional.of(new com.travelbird.ai.api.AiPreviewDisplayReader.Summary(
+                        "AI route", "11110", java.util.List.of(), java.util.List.of(), java.time.LocalDateTime.now())));
         authenticateAs(SAVER_USER_ID);
         mockMvc.perform(put("/api/users/me/saved-routes/ai-previews/{previewId}", previewId))
                 .andExpect(status().isNoContent());

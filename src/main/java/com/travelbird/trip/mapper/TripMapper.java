@@ -33,8 +33,8 @@ public class TripMapper {
     return new CreateTripResponse(
         trip.getId(), trip.getTitle(), trip.getSourceType(), trip.status(today),
         trip.getCancelledAt(), trip.getVisibility(), region(trip), trip.getStartDate(),
-        trip.getEndDate(), trip.getCompanionType(), trip.getThemes(), trip.getPace(),
-        trip.getHashtags(), days(trip, false), true, null);
+        trip.getEndDate(), trip.getCompanionType(), new java.util.LinkedHashSet<>(trip.getThemes()), trip.getPace(),
+        new java.util.LinkedHashSet<>(trip.getHashtags()), days(trip, false), true, null);
   }
 
   public TripResponse detail(Trip trip, Long viewerId, Long publishedPostId, LocalDate today) {
@@ -47,8 +47,8 @@ public class TripMapper {
         trip.getId(), new AuthorSummary(author.userId(), author.nickname(), author.birdType()),
         trip.getTitle(), trip.getSummary(), trip.getSourceType(), trip.status(today),
         trip.getCancelledAt(), trip.getVisibility(), region(trip), trip.getStartDate(),
-        trip.getEndDate(), trip.getPace(), trip.getCompanionType(), trip.getThemes(),
-        trip.getHashtags(), owner && !cancelled && !locked,
+        trip.getEndDate(), trip.getPace(), trip.getCompanionType(), new java.util.LinkedHashSet<>(trip.getThemes()),
+        new java.util.LinkedHashSet<>(trip.getHashtags()), owner && !cancelled && !locked,
         owner ? (cancelled ? "TRIP_CANCELLED" : locked ? "PUBLISHED_POST_EXISTS" : null) : null,
         owner ? publishedPostId : null, owner && !cancelled, days(trip, mask));
   }
