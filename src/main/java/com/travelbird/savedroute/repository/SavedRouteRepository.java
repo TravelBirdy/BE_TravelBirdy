@@ -42,6 +42,16 @@ public interface SavedRouteRepository extends JpaRepository<SavedRoute, Long> {
     @Query("update SavedRoute s set s.sourceAvailable = false where s.savedRouteId in :savedRouteIds")
     int markUnavailable(@Param("savedRouteIds") List<Long> savedRouteIds);
 
+    /**
+     * 원본 Post 삭제(§3.8.4) 시 타인의 저장 관계는 유지하되 접근 불가로 표시한다 — 위
+     * {@code markUnavailable}(id 목록 기준)와 달리 sourceId 하나로 그 Post를 저장한 모든
+     * 사용자 행을 한 번에 처리한다.
+     */
+    @Modifying
+    @Query("update SavedRoute s set s.sourceAvailable = false "
+            + "where s.sourceType = :sourceType and s.sourceId = :sourceId and s.sourceAvailable = true")
+    int markUnavailableBySource(@Param("sourceType") SavedRouteSourceType sourceType, @Param("sourceId") Long sourceId);
+
     /** {@code CommunityPostCardAssembler}가 카드의 {@code savedRoute} 배지를 채울 때 배치로 쓴다. */
     @Query("select s.sourceId from SavedRoute s where s.userId = :userId and s.sourceType = com.travelbird.savedroute.domain.SavedRouteSourceType.POST "
             + "and s.sourceId in :postIds and s.sourceAvailable = true")

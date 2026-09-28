@@ -6,11 +6,13 @@ import com.travelbird.post.controller.dto.CreatePostResponse;
 import com.travelbird.post.controller.dto.MyPostsResponse;
 import com.travelbird.post.controller.dto.PostDetailResponse;
 import com.travelbird.post.service.PostCreateService;
+import com.travelbird.post.service.PostDeleteService;
 import com.travelbird.post.service.PostDetailService;
 import com.travelbird.post.service.PostMyListService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,8 +21,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 게시글 작성/목록/상세. backend-functional-spec-v10.md §3.8.1, §3.8.3. 작성·목록은
- * 로그인 필수, 상세는 비로그인도 허용한다(SecurityConfig permitAll, PR#17).
+ * 게시글 작성/목록/상세/삭제. backend-functional-spec-v10.md §3.8.1, §3.8.3, §3.8.4.
+ * 작성·목록·삭제는 로그인 필수, 상세는 비로그인도 허용한다(SecurityConfig permitAll, PR#17).
  */
 @RestController
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class PostController {
     private final PostCreateService postCreateService;
     private final PostMyListService postMyListService;
     private final PostDetailService postDetailService;
+    private final PostDeleteService postDeleteService;
 
     @PostMapping("/api/posts")
     public ResponseEntity<CreatePostResponse> create(@RequestBody CreatePostRequest request) {
@@ -47,5 +50,11 @@ public class PostController {
     @GetMapping("/api/posts/{postId}")
     public PostDetailResponse getDetail(@PathVariable Long postId) {
         return postDetailService.getDetail(postId, SecurityUtils.getCurrentUserIdOrNull());
+    }
+
+    @DeleteMapping("/api/posts/{postId}")
+    public ResponseEntity<Void> delete(@PathVariable Long postId) {
+        postDeleteService.delete(SecurityUtils.getCurrentUserId(), postId);
+        return ResponseEntity.noContent().build();
     }
 }
