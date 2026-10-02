@@ -80,7 +80,12 @@ public class PostCreateService {
         contentValidator.validateNoDuplicateImages(imageFileIds);
         contentValidator.validateRequiredForPublish(request.title(), request.content(), publish);
 
-        TripPostReader.TripPostSnapshot trip = tripPostReader.getOwnedTripForPost(userId, request.tripId());
+        // 발행(publish=true)은 Trip 행을 잠가서 발행과 동시 경로 변경 경쟁을 막는다(PR#27,
+        // TripPostReader.lockOwnedTripForPost). DRAFT 저장은 Trip 경로와 충돌할 지점이 없어
+        // 잠금이 필요 없다(chun9930과 합의).
+        TripPostReader.TripPostSnapshot trip = publish
+                ? tripPostReader.lockOwnedTripForPost(userId, request.tripId())
+                : tripPostReader.getOwnedTripForPost(userId, request.tripId());
         if (trip.cancelledAt() != null) {
             throw new BusinessException(ErrorCode.TRIP_CANCELLED_READ_ONLY);
         }
