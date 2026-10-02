@@ -101,7 +101,8 @@ public class PostDetailService {
                 post.getVisibility(),
                 post.getViewCount(),
                 post.getSaveCount(),
-                post.getShareCount());
+                post.getShareCount(),
+                post.getVersion());
     }
 
     private AuthorSummary resolveAuthor(Long ownerUserId) {

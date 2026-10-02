@@ -17,6 +17,7 @@ public record PostDetailResponse(
         PostVisibility visibility,
         long viewCount,
         long saveCount,
-        long shareCount
+        long shareCount,
+        Long version
 ) {
 }

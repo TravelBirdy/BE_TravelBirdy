@@ -146,6 +146,12 @@ public class Post {
         this.visibility = visibility;
     }
 
+    /** DRAFT→PUBLISHED 최초 발행. PATCH에서 {@code publish=true}로 호출(§3.8.4). */
+    public void publish() {
+        this.status = PostStatus.PUBLISHED;
+        this.publishedAt = LocalDateTime.now();
+    }
+
     /** 삭제(tombstone) — 사용자 콘텐츠는 제거하고 참조 무결성을 위해 행은 남긴다. */
     public void tombstone() {
         this.title = null;
