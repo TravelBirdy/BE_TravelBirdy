@@ -1,0 +1,435 @@
+{
+  "scope": "Actual local Gemini HTTP E2E with combined Backend Part1/2/3 fixes, 2026-09-28~29",
+  "total": 107,
+  "passed": 107,
+  "checks": [
+    {
+      "name": "GENERAL intake",
+      "passed": true
+    },
+    {
+      "name": "GENERAL backend SUCCEEDED with preview",
+      "passed": true
+    },
+    {
+      "name": "GENERAL preview after fetch fix",
+      "passed": true
+    },
+    {
+      "name": "generated reasons meet length contract",
+      "passed": true
+    },
+    {
+      "name": "job owner denied",
+      "passed": true
+    },
+    {
+      "name": "preview owner denied",
+      "passed": true
+    },
+    {
+      "name": "preview apply owner denied",
+      "passed": true
+    },
+    {
+      "name": "missing user JWT",
+      "passed": true
+    },
+    {
+      "name": "callback missing internal key",
+      "passed": true
+    },
+    {
+      "name": "callback wrong internal key",
+      "passed": true
+    },
+    {
+      "name": "AI wrong internal key",
+      "passed": true
+    },
+    {
+      "name": "internal key cannot replace public JWT",
+      "passed": true
+    },
+    {
+      "name": "preview explicit null rejected",
+      "passed": true
+    },
+    {
+      "name": "preview metadata edit",
+      "passed": true
+    },
+    {
+      "name": "stale preview version",
+      "passed": true
+    },
+    {
+      "name": "duplicate preview place",
+      "passed": true
+    },
+    {
+      "name": "unknown preview place",
+      "passed": true
+    },
+    {
+      "name": "preview day over 15 places",
+      "passed": true
+    },
+    {
+      "name": "preview route reorder",
+      "passed": true
+    },
+    {
+      "name": "save preview",
+      "passed": true
+    },
+    {
+      "name": "save preview empty body",
+      "passed": true
+    },
+    {
+      "name": "saved preview retention",
+      "passed": true
+    },
+    {
+      "name": "permanent and savedAt",
+      "passed": true
+    },
+    {
+      "name": "save preview idempotent",
+      "passed": true
+    },
+    {
+      "name": "save preview idempotent empty body",
+      "passed": true
+    },
+    {
+      "name": "edit permanent preview",
+      "passed": true
+    },
+    {
+      "name": "savedAt preserved after edit",
+      "passed": true
+    },
+    {
+      "name": "saved route list",
+      "passed": true
+    },
+    {
+      "name": "preview does not create Trip before apply",
+      "passed": true
+    },
+    {
+      "name": "apply creates Trip",
+      "passed": true
+    },
+    {
+      "name": "created Trip DB route equals Preview",
+      "passed": true
+    },
+    {
+      "name": "repeat apply",
+      "passed": true
+    },
+    {
+      "name": "repeat apply same trip and time",
+      "passed": true
+    },
+    {
+      "name": "unsave Preview",
+      "passed": true
+    },
+    {
+      "name": "unsave Preview empty body",
+      "passed": true
+    },
+    {
+      "name": "unsaved Preview retention",
+      "passed": true
+    },
+    {
+      "name": "unsave restores temporary expiry",
+      "passed": true
+    },
+    {
+      "name": "unsave leaves applied Trip",
+      "passed": true
+    },
+    {
+      "name": "save canonical place",
+      "passed": true
+    },
+    {
+      "name": "save canonical place empty body",
+      "passed": true
+    },
+    {
+      "name": "SAVED_PLACES intake",
+      "passed": true
+    },
+    {
+      "name": "SAVED_PLACES backend SUCCEEDED with preview",
+      "passed": true
+    },
+    {
+      "name": "SAVED_PLACES preview",
+      "passed": true
+    },
+    {
+      "name": "saved recommendation applies to new Trip",
+      "passed": true
+    },
+    {
+      "name": "manual Trip fixture",
+      "passed": true
+    },
+    {
+      "name": "empty wishlist rejected",
+      "passed": true
+    },
+    {
+      "name": "add existing place",
+      "passed": true
+    },
+    {
+      "name": "add existing place empty body",
+      "passed": true
+    },
+    {
+      "name": "existing place memo",
+      "passed": true
+    },
+    {
+      "name": "existing place memo empty body",
+      "passed": true
+    },
+    {
+      "name": "add wishlist place",
+      "passed": true
+    },
+    {
+      "name": "add wishlist place empty body",
+      "passed": true
+    },
+    {
+      "name": "TRIP_WISHLIST intake",
+      "passed": true
+    },
+    {
+      "name": "TRIP_WISHLIST backend SUCCEEDED with preview",
+      "passed": true
+    },
+    {
+      "name": "TRIP_WISHLIST preview",
+      "passed": true
+    },
+    {
+      "name": "wishlist preview keeps Trip unchanged",
+      "passed": true
+    },
+    {
+      "name": "KEEP MUST_INCLUDE no additional places",
+      "passed": true
+    },
+    {
+      "name": "cancel target before apply",
+      "passed": true
+    },
+    {
+      "name": "cancel target before apply empty body",
+      "passed": true
+    },
+    {
+      "name": "cancelled target rejects apply",
+      "passed": true
+    },
+    {
+      "name": "published target rejects apply",
+      "passed": true
+    },
+    {
+      "name": "wishlist applies to existing Trip",
+      "passed": true
+    },
+    {
+      "name": "updated existing correct Trip",
+      "passed": true
+    },
+    {
+      "name": "existing place identity and memo preserved",
+      "passed": true
+    },
+    {
+      "name": "daily quota",
+      "passed": true
+    },
+    {
+      "name": "completed callback duplicate",
+      "passed": true
+    },
+    {
+      "name": "one preview for duplicate callback",
+      "passed": true
+    },
+    {
+      "name": "late completed callback after actual 180s timeout",
+      "passed": true
+    },
+    {
+      "name": "late callback no preview",
+      "passed": true
+    },
+    {
+      "name": "late callback keeps FAILED",
+      "passed": true
+    },
+    {
+      "name": "timeout remains terminal",
+      "passed": true
+    },
+    {
+      "name": "same AI job same payload idempotent",
+      "passed": true
+    },
+    {
+      "name": "same AI job different payload conflict",
+      "passed": true
+    },
+    {
+      "name": "AI request schema invalid",
+      "passed": true
+    },
+    {
+      "name": "AI unknown reference place",
+      "passed": true
+    },
+    {
+      "name": "AI wrong-region reference",
+      "passed": true
+    },
+    {
+      "name": "invalid callback unknown place",
+      "passed": true
+    },
+    {
+      "name": "invalid callback fails job without Preview",
+      "passed": true
+    },
+    {
+      "name": "invalid callback duplicate place",
+      "passed": true
+    },
+    {
+      "name": "FAILED callback accepted",
+      "passed": true
+    },
+    {
+      "name": "FAILED callback idempotent",
+      "passed": true
+    },
+    {
+      "name": "saved places not owned",
+      "passed": true
+    },
+    {
+      "name": "empty saved places",
+      "passed": true
+    },
+    {
+      "name": "expired preview read",
+      "passed": true
+    },
+    {
+      "name": "expired preview apply",
+      "passed": true
+    },
+    {
+      "name": "created Trip detail",
+      "passed": true
+    },
+    {
+      "name": "Trip title equals edited Preview",
+      "passed": true
+    },
+    {
+      "name": "Trip response required arrays",
+      "passed": true
+    },
+    {
+      "name": "updated Trip detail",
+      "passed": true
+    },
+    {
+      "name": "save after display fix",
+      "passed": true
+    },
+    {
+      "name": "read saved preview after display fix",
+      "passed": true
+    },
+    {
+      "name": "saved list before edit after fix",
+      "passed": true
+    },
+    {
+      "name": "edit saved preview after display fix",
+      "passed": true
+    },
+    {
+      "name": "saved list after edit after fix",
+      "passed": true
+    },
+    {
+      "name": "saved list displays latest preview title and region",
+      "passed": true
+    },
+    {
+      "name": "saved list ordered place names and themes",
+      "passed": true
+    },
+    {
+      "name": "saved list preserves identity savedAt and advances updatedAt",
+      "passed": true
+    },
+    {
+      "name": "saved list required nullable fields present",
+      "passed": true
+    },
+    {
+      "name": "saved edit does not alter previously applied Trip",
+      "passed": true
+    },
+    {
+      "name": "unavailable owned reference list",
+      "passed": true
+    },
+    {
+      "name": "unavailable Preview excluded and marked",
+      "passed": true
+    },
+    {
+      "name": "final jar save preview",
+      "passed": true
+    },
+    {
+      "name": "temporary Preview reference excluded over HTTP",
+      "passed": true
+    },
+    {
+      "name": "temporary Preview reference marked unavailable",
+      "passed": true
+    },
+    {
+      "name": "restore permanent Preview saved reference",
+      "passed": true
+    },
+    {
+      "name": "final jar applied Trip readable",
+      "passed": true
+    },
+    {
+      "name": "repeated expiry scheduler remains error-free and timestamp stable",
+      "passed": true
+    }
+  ]
+}

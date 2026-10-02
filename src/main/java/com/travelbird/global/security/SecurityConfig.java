@@ -38,6 +38,8 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/error").permitAll()
+                        // The servlet InternalAiKeyAuthenticationFilter enforces the shared key.
+                        .requestMatchers(HttpMethod.POST, "/internal/ai-callbacks/trip-recommendations").permitAll()
                         .requestMatchers("/api/auth/kakao/login", "/api/auth/token/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/home").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/*").permitAll()
