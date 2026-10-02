@@ -3,6 +3,7 @@ package com.travelbird.file.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -148,6 +149,20 @@ class FileLinkServiceImplTest {
         verify(s3FileStorage, times(1)).delete("uploads/trip_place/1/10.webp");
         verify(s3FileStorage, never()).delete("uploads/trip_place/999/20.webp");
         verify(fileAssetRepository).deleteAll(List.of(owned));
+    }
+
+    @Test
+    void deleteOwnedFiles_s3DeleteFails_stillDeletesDbRowsForAllFiles() {
+        FileAsset first = uploadedFile(10L, FilePurpose.TRIP_PLACE);
+        FileAsset second = uploadedFile(20L, FilePurpose.TRIP_PLACE);
+        when(fileAssetRepository.findAllById(List.of(10L, 20L))).thenReturn(List.of(first, second));
+        doThrow(new RuntimeException("S3 unavailable"))
+                .when(s3FileStorage).delete("uploads/trip_place/1/10.webp");
+
+        fileLinkService.deleteOwnedFiles(1L, List.of(10L, 20L));
+
+        verify(s3FileStorage).delete("uploads/trip_place/1/20.webp");
+        verify(fileAssetRepository).deleteAll(List.of(first, second));
     }
 
     @Test
