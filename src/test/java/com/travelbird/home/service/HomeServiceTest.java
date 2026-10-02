@@ -139,6 +139,44 @@ class HomeServiceTest {
     }
 
     @Test
+    void getHome_moreThanSevenAdminRecommendedPlaces_returnsFirstSevenInDisplayOrder() {
+        when(weatherClient.getWeather(eq(new BigDecimal("37.5665")), eq(new BigDecimal("126.9780")), eq("서울특별시")))
+                .thenReturn(new WeatherSummary(WeatherType.CLEAR, "맑음", "서울특별시"));
+        List<Long> placeIds = List.of(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L);
+        when(homeRecommendedPlaceRepository.findAllByOrderByDisplayOrderAsc())
+                .thenReturn(placeIds.stream().map(id -> recommendedPlace(id, id.intValue())).toList());
+        // 3번 장소는 PlaceReader가 돌려주지 않는 상황 — 뒤 순서(8번)가 채워져야 한다.
+        when(placeReader.getPlaces(placeIds, null)).thenReturn(placeIds.stream()
+                .filter(id -> id != 3L)
+                .map(id -> new PlaceContract(id, "장소" + id, "주소" + id, "11110", PlaceCategory.ATTRACTION,
+                        new BigDecimal("37.5"), new BigDecimal("126.9"), PlaceStatus.ACTIVE, false))
+                .toList());
+
+        var response = homeService.getHome(null, null, null);
+
+        assertThat(response.recommendedPlaces()).extracting("placeId")
+                .containsExactly(1L, 2L, 4L, 5L, 6L, 7L, 8L);
+    }
+
+    @Test
+    void getHome_recommendedPlace_externalCategoryFallsBackToCategoryName() {
+        when(weatherClient.getWeather(eq(new BigDecimal("37.5665")), eq(new BigDecimal("126.9780")), eq("서울특별시")))
+                .thenReturn(new WeatherSummary(WeatherType.CLEAR, "맑음", "서울특별시"));
+        when(homeRecommendedPlaceRepository.findAllByOrderByDisplayOrderAsc())
+                .thenReturn(List.of(recommendedPlace(10L, 1)));
+        when(placeReader.getPlaces(List.of(10L), null)).thenReturn(List.of(
+                new PlaceContract(10L, "경복궁", "서울 종로구", "11110", PlaceCategory.ATTRACTION,
+                        new BigDecimal("37.5"), new BigDecimal("126.9"), PlaceStatus.ACTIVE, false)));
+
+        var response = homeService.getHome(null, null, null);
+
+        assertThat(response.recommendedPlaces()).singleElement().satisfies(place -> {
+            assertThat(place.externalCategory()).isEqualTo("ATTRACTION");
+            assertThat(place.category()).isEqualTo(PlaceCategory.ATTRACTION);
+        });
+    }
+
+    @Test
     void getHome_homePostReaderReturnsPosts_passesThroughAsRecommendedPosts() {
         when(weatherClient.getWeather(eq(new BigDecimal("37.5665")), eq(new BigDecimal("126.9780")), eq("서울특별시")))
                 .thenReturn(new WeatherSummary(WeatherType.CLEAR, "맑음", "서울특별시"));

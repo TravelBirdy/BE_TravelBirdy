@@ -26,7 +26,10 @@ public class HomeService {
     private static final BigDecimal SEOUL_LATITUDE = new BigDecimal("37.5665");
     private static final BigDecimal SEOUL_LONGITUDE = new BigDecimal("126.9780");
 
-    /** 기능명세서 §3.12.1 "오늘의 추천 장소 7개" — 추천 기록 개수는 명세에 별도 지정이 없어 동일하게 맞춘다. */
+    /** 기능명세서 §3.12.1 "오늘의 추천 장소 7개" — 운영자가 더 많이 지정해도 displayOrder 앞에서 7개만 반환한다. */
+    private static final int HOME_RECOMMENDED_PLACE_LIMIT = 7;
+
+    /** 추천 기록 개수는 명세에 별도 지정이 없어 추천 장소와 동일하게 맞춘다. */
     private static final int HOME_RECOMMENDED_POST_LIMIT = 7;
 
     private final WeatherClient weatherClient;
@@ -71,9 +74,11 @@ public class HomeService {
 
     /**
      * 운영자가 {@code home_recommended_places}에 직접 지정한 장소를 {@code displayOrder} 순서로
-     * 조회한다(§3.12.1 "MVP 추천 장소 7개는 운영자가 DB에서 직접 지정한 고정 장소다"). 빈 결과는
-     * 아직 운영자가 지정을 안 한 정상적인 상태이지, 실패가 아니라서 {@code unavailableSections}에
-     * 올리지 않는다 — 날씨가 실제 장애일 때만 올리는 것과 같은 원칙.
+     * 조회해 최대 {@link #HOME_RECOMMENDED_PLACE_LIMIT}개만 반환한다(§3.12.1 "MVP 추천 장소 7개는
+     * 운영자가 DB에서 직접 지정한 고정 장소다"). 개수 제한은 {@link PlaceReader}가 돌려주지 않은
+     * 장소를 걸러낸 뒤에 적용해서, 지정된 장소 일부가 조회되지 않아도 뒤 순서 장소로 채워진다.
+     * 빈 결과는 아직 운영자가 지정을 안 한 정상적인 상태이지, 실패가 아니라서
+     * {@code unavailableSections}에 올리지 않는다 — 날씨가 실제 장애일 때만 올리는 것과 같은 원칙.
      */
     private List<PlaceSummary> getRecommendedPlaces(Long viewerIdOrNull) {
         List<Long> orderedPlaceIds = homeRecommendedPlaceRepository.findAllByOrderByDisplayOrderAsc().stream()
@@ -87,21 +92,26 @@ public class HomeService {
         return orderedPlaceIds.stream()
                 .map(placesById::get)
                 .filter(place -> place != null)
+                .limit(HOME_RECOMMENDED_PLACE_LIMIT)
                 .map(this::toPlaceSummary)
                 .toList();
     }
 
     /**
-     * {@code externalPlaceId}/{@code externalCategory}는 NAVER 표시용·TourAPI 원본 카테고리라
-     * {@link PlaceReader} 계약에 없다 — {@code PlaceSearchService}가 내부 canonical 장소에
-     * {@code externalPlaceId=null}을 쓰는 것과 같은 이유로 비워둔다.
+     * {@code externalPlaceId}는 NAVER 표시용 값이라 {@link PlaceReader} 계약에 없다 —
+     * {@code PlaceSearchService}가 내부 canonical 장소에 {@code externalPlaceId=null}을 쓰는 것과
+     * 같은 이유로 비워둔다(OpenAPI {@code PlaceSummary.externalPlaceId}는 nullable).
+     *
+     * <p>{@code externalCategory}(TourAPI 원본 카테고리)도 계약에 없지만 OpenAPI에서 non-null
+     * string이라 null로 내릴 수 없다. 원본 값이 없으면 내부 {@code category}의 문자열 값
+     * (예: {@code "CAFE"})을 대체값으로 반환한다.
      */
     private PlaceSummary toPlaceSummary(PlaceContract place) {
         return new PlaceSummary(
                 place.placeId(),
                 null,
                 place.name(),
-                null,
+                place.category().name(),
                 place.category(),
                 place.address(),
                 place.latitude(),
