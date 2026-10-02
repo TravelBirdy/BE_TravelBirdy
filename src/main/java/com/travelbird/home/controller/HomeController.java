@@ -1,5 +1,6 @@
 package com.travelbird.home.controller;
 
+import com.travelbird.global.security.SecurityUtils;
 import com.travelbird.home.dto.response.HomeResponse;
 import com.travelbird.home.service.HomeService;
 import java.math.BigDecimal;
@@ -22,6 +23,6 @@ public class HomeController {
             @RequestParam(required = false) BigDecimal latitude,
             @RequestParam(required = false) BigDecimal longitude
     ) {
-        return ResponseEntity.ok(homeService.getHome(latitude, longitude));
+        return ResponseEntity.ok(homeService.getHome(latitude, longitude, SecurityUtils.getCurrentUserIdOrNull()));
     }
 }

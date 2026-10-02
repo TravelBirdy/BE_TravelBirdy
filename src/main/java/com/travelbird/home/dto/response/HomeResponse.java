@@ -1,6 +1,7 @@
 package com.travelbird.home.dto.response;
 
 import com.travelbird.event.dto.response.EventResponse;
+import com.travelbird.post.api.CommunityPostCard;
 import java.util.List;
 
 public record HomeResponse(
