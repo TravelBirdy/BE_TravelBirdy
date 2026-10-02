@@ -9,4 +9,7 @@ public interface PostViewHistoryRepository extends JpaRepository<PostViewHistory
 
     /** 조회수 증가 API(§3.9.4)가 도입되면 24시간 중복 판정에 쓸 편의 메서드. 현재는 미사용. */
     long countByPostIdAndViewedAtBetween(Long postId, LocalDateTime from, LocalDateTime to);
+
+    /** 회원 탈퇴 시 본인 조회 기록 정리. */
+    void deleteByViewerUserId(Long viewerUserId);
 }

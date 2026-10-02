@@ -16,6 +16,9 @@ public interface SavedPlaceRepository extends JpaRepository<SavedPlace, SavedPla
     @Query("select s.id.placeId from SavedPlace s where s.id.userId = :userId")
     List<Long> findPlaceIdsByUserId(@Param("userId") Long userId);
 
+    /** 회원 탈퇴(PostWithdrawalCleanup) 시 본인 저장 장소 전체 삭제. */
+    void deleteByIdUserId(Long userId);
+
     long countByIdUserIdAndIdPlaceIdIn(Long userId, Collection<Long> placeIds);
 
     @Query("select s from SavedPlace s where s.id.userId = :userId "

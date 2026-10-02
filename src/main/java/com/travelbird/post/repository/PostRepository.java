@@ -43,6 +43,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      */
     List<Post> findByTripIdInAndStatusAndDeletedAtIsNull(List<Long> tripIds, PostStatus status);
 
+    /**
+     * 회원 탈퇴(PostWithdrawalCleanup) 전용 — 삭제(tombstone)된 행도 {@code trip_id}를 유지해
+     * {@code posts.trip_id RESTRICT}에 걸리므로 deletedAt 조건 없이 전부 조회한다.
+     */
+    List<Post> findByTripIdIn(List<Long> tripIds);
+
     /** 마이페이지 기록 수(§3.14.1) — 사용자 소유 tripId 목록 중 해당 status·비삭제 Post 개수. */
     long countByTripIdInAndStatusAndDeletedAtIsNull(List<Long> tripIds, PostStatus status);
 
