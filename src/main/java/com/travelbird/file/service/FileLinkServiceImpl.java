@@ -10,6 +10,8 @@ import com.travelbird.file.repository.FileAssetRepository;
 import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class FileLinkServiceImpl implements FileLinkService {
+
+    private static final Logger log = LoggerFactory.getLogger(FileLinkServiceImpl.class);
 
     private final FileAssetRepository fileAssetRepository;
     private final S3FileStorage s3FileStorage;
@@ -79,7 +83,9 @@ public class FileLinkServiceImpl implements FileLinkService {
     /**
      * 소유하지 않은 fileId는 조용히 건너뛴다(타 파트의 잘못된 입력으로 남의 파일이 지워지지
      * 않도록). DB 행과 S3 객체를 함께 삭제한다(기능명세서 3.7.6 "제거된 이미지 파일은 즉시
-     * 삭제한다").
+     * 삭제한다"). S3 삭제 실패는 호출부({@code TripService}/{@code PostDeleteService}의
+     * 정상적인 트랜잭션)를 되돌리지 않도록 로그만 남기고 계속 진행한다 —
+     * {@code WithdrawalService.deleteOwnedFilesAndS3Objects}와 동일한 원칙.
      */
     @Override
     public void deleteOwnedFiles(Long userId, List<Long> fileIds) {
@@ -89,7 +95,14 @@ public class FileLinkServiceImpl implements FileLinkService {
         List<FileAsset> ownedFiles = fileAssetRepository.findAllById(fileIds).stream()
                 .filter(file -> file.isOwnedBy(userId))
                 .toList();
-        ownedFiles.forEach(file -> s3FileStorage.delete(file.getObjectKey()));
+        for (FileAsset file : ownedFiles) {
+            try {
+                s3FileStorage.delete(file.getObjectKey());
+            } catch (RuntimeException e) {
+                log.warn("파일 연결 해제 중 S3 객체 삭제 실패, DB 행만 정리합니다. fileId={}, objectKey={}",
+                        file.getFileId(), file.getObjectKey(), e);
+            }
+        }
         fileAssetRepository.deleteAll(ownedFiles);
     }
 

@@ -149,7 +149,9 @@ class PostUpdateImageCleanupIntegrationTest {
                 .andExpect(status().isOk());
 
         verify(s3FileStorage).delete(oldKey);
-        assertThat(fileCount(oldFileId)).isEqualTo(1);
+        // FileLinkServiceImpl.deleteOwnedFiles가 S3 삭제 실패와 무관하게 DB 행을 정리하도록
+        // 바뀌었다(fix/file-link-s3-delete-resilience-eunjin) — 의도된 동작 변경.
+        assertThat(fileCount(oldFileId)).isZero();
     }
 
     @Test
