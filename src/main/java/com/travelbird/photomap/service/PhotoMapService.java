@@ -42,14 +42,8 @@ public class PhotoMapService {
         }
 
         Map<Long, PlaceContract> placesById = resolvePlaces(records);
-        Map<String, List<PhotoMapVisitAssembler.VisitedPlaceRecord>> recordsBySigunguCode = new HashMap<>();
-        for (PhotoMapVisitAssembler.VisitedPlaceRecord record : records) {
-            PlaceContract place = placesById.get(record.placeId());
-            if (place == null) {
-                continue; // PlaceReader가 못 찾음(방어적 스킵)
-            }
-            recordsBySigunguCode.computeIfAbsent(place.sigunguCode(), code -> new ArrayList<>()).add(record);
-        }
+        Map<String, List<PhotoMapVisitAssembler.VisitedPlaceRecord>> recordsBySigunguCode =
+                groupBySigunguCode(records, placesById);
 
         Map<String, RegionSummary> regionsByCode = resolveRegions(recordsBySigunguCode.keySet());
         List<PhotoMapRegionItem> items = recordsBySigunguCode.keySet().stream()
@@ -65,6 +59,32 @@ public class PhotoMapService {
                 .toList();
 
         return new PhotoMapRegionsResponse(items, items.size());
+    }
+
+    /**
+     * 마이페이지 방문 지역 수(§3.14.1 "포토맵과 동일한 5자리 시군구 기준") — {@link #getRegions}의
+     * {@code totalVisitedRegionCount}와 같은 집계({@link #groupBySigunguCode})를 재사용해서 두
+     * 화면의 숫자가 어긋나지 않게 한다.
+     */
+    public long countVisitedRegions(Long userId) {
+        List<PhotoMapVisitAssembler.VisitedPlaceRecord> records = visitAssembler.resolveVisitedRecords(userId);
+        if (records.isEmpty()) {
+            return 0;
+        }
+        return groupBySigunguCode(records, resolvePlaces(records)).size();
+    }
+
+    private Map<String, List<PhotoMapVisitAssembler.VisitedPlaceRecord>> groupBySigunguCode(
+            List<PhotoMapVisitAssembler.VisitedPlaceRecord> records, Map<Long, PlaceContract> placesById) {
+        Map<String, List<PhotoMapVisitAssembler.VisitedPlaceRecord>> recordsBySigunguCode = new HashMap<>();
+        for (PhotoMapVisitAssembler.VisitedPlaceRecord record : records) {
+            PlaceContract place = placesById.get(record.placeId());
+            if (place == null) {
+                continue; // PlaceReader가 못 찾음(방어적 스킵)
+            }
+            recordsBySigunguCode.computeIfAbsent(place.sigunguCode(), code -> new ArrayList<>()).add(record);
+        }
+        return recordsBySigunguCode;
     }
 
     /**
