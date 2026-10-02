@@ -52,7 +52,8 @@ class PostCreateServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         postCreateService = new PostCreateService(postRepository, postImageRepository, postHashtagRepository,
-                postPlaceRepository, tripPostReader, fileLinkService, new PostContentValidator(), userReader);
+                postPlaceRepository, tripPostReader, fileLinkService, new PostContentValidator(),
+                new PostTripPlaceResolver(), userReader);
     }
 
     private TripPostReader.TripPostSnapshot snapshot() {

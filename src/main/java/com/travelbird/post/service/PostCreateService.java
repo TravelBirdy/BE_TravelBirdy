@@ -5,7 +5,7 @@ import com.travelbird.file.domain.FilePurpose;
 import com.travelbird.global.error.BusinessException;
 import com.travelbird.global.error.ErrorCode;
 import com.travelbird.post.controller.dto.CreatePostRequest;
-import com.travelbird.post.controller.dto.CreatePostResponse;
+import com.travelbird.post.controller.dto.PostMutationResponse;
 import com.travelbird.post.domain.Post;
 import com.travelbird.post.domain.PostHashtag;
 import com.travelbird.post.domain.PostImage;
@@ -21,10 +21,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -52,9 +49,10 @@ public class PostCreateService {
     private final TripPostReader tripPostReader;
     private final FileLinkService fileLinkService;
     private final PostContentValidator contentValidator;
+    private final PostTripPlaceResolver tripPlaceResolver;
     private final UserReader userReader;
 
-    public CreatePostResponse create(Long userId, CreatePostRequest request) {
+    public PostMutationResponse create(Long userId, CreatePostRequest request) {
         userReader.validateActiveUser(userId); // 탈퇴·정지 유저가 유효 토큰으로 작성하는 것을 막는다(oriole0419 PR#19 리뷰).
 
         if (request.tripId() == null || request.visibility() == null || request.publish() == null) {
@@ -94,7 +92,7 @@ public class PostCreateService {
             throw new BusinessException(ErrorCode.POST_ALREADY_EXISTS_FOR_TRIP);
         }
 
-        List<Long> tripPlaceIds = resolveTripPlaceIds(trip, placeIds);
+        List<Long> tripPlaceIds = tripPlaceResolver.resolve(trip, placeIds);
 
         // representativeFileId는 위에서 imageFileIds에 포함된 것만 허용하도록 이미 검증했으므로
         // imageFileIds 하나만 검증·링크하면 대표 이미지도 함께 커버된다.
@@ -123,27 +121,8 @@ public class PostCreateService {
             fileLinkService.markLinked(imageFileIds);
         }
 
-        return new CreatePostResponse(post.getPostId(), post.getStatus(), post.getVisibility(),
-                post.getPublishedAt(), post.getCreatedAt(), post.isRouteLocked());
-    }
-
-    private List<Long> resolveTripPlaceIds(TripPostReader.TripPostSnapshot trip, List<Long> placeIds) {
-        if (placeIds.isEmpty()) {
-            return List.of();
-        }
-        Map<Long, Long> tripPlaceIdByPlaceId = new HashMap<>();
-        trip.days().forEach(day -> day.places().forEach(
-                place -> tripPlaceIdByPlaceId.put(place.placeId(), place.tripPlaceId())));
-
-        List<Long> tripPlaceIds = new ArrayList<>();
-        for (Long placeId : placeIds) {
-            Long tripPlaceId = tripPlaceIdByPlaceId.get(placeId);
-            if (tripPlaceId == null) {
-                throw new BusinessException(ErrorCode.POST_PLACE_NOT_IN_TRIP);
-            }
-            tripPlaceIds.add(tripPlaceId);
-        }
-        return tripPlaceIds;
+        return new PostMutationResponse(post.getPostId(), post.getStatus(), post.getVisibility(),
+                post.getPublishedAt(), post.getCreatedAt(), post.isRouteLocked(), post.getVersion());
     }
 
     private <T> List<T> normalize(List<T> list) {

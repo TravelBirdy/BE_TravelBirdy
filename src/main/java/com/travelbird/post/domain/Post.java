@@ -146,6 +146,20 @@ public class Post {
         this.visibility = visibility;
     }
 
+    /**
+     * 수정 성공 표시 — {@code posts} 행 자체는 안 바뀌고 자식 테이블(이미지·장소·해시태그)만 바뀐
+     * 수정에서도 {@code @Version}이 증가하고 충돌 검사가 걸리도록 엔티티를 dirty로 만든다.
+     */
+    public void touch() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /** DRAFT→PUBLISHED 최초 발행. PATCH에서 {@code publish=true}로 호출(§3.8.4). */
+    public void publish() {
+        this.status = PostStatus.PUBLISHED;
+        this.publishedAt = LocalDateTime.now();
+    }
+
     /** 삭제(tombstone) — 사용자 콘텐츠는 제거하고 참조 무결성을 위해 행은 남긴다. */
     public void tombstone() {
         this.title = null;
