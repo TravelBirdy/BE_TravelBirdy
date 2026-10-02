@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -28,12 +27,10 @@ import java.util.Optional;
 @Transactional
 public class TourApiPlaceImportService {
 
-    private static final double MERGE_RADIUS_METERS = 50.0;
-    private static final double EARTH_RADIUS_METERS = 6_371_000.0;
-
     private final PlaceRepository placeRepository;
     private final PlaceExternalIdRepository placeExternalIdRepository;
     private final PlaceCategoryMapper placeCategoryMapper;
+    private final PlaceMatcher placeMatcher;
 
     public List<PlaceExternalIdMapping> importPlaces(List<TourApiPlaceImportRow> rows) {
         List<PlaceExternalIdMapping> mappings = new ArrayList<>();
@@ -70,17 +67,9 @@ public class TourApiPlaceImportService {
      * 만드는 쪽을 택한다(chun9930 리뷰, PR#10 — {@code .findFirst()}로 아무거나 고르던 것 수정).
      */
     private Optional<Long> findMergeCandidate(TourApiPlaceImportRow row) {
-        String normalizedName = normalize(row.name());
-        String normalizedAddress = normalize(row.address());
-
-        List<Place> candidates = placeRepository.findAllBySigunguCode(row.regionCode()).stream()
-                .filter(candidate -> normalize(candidate.getName()).equals(normalizedName))
-                .filter(candidate -> normalize(candidate.getAddress()).equals(normalizedAddress))
-                .filter(candidate -> distanceMeters(candidate.getLatitude(), candidate.getLongitude(),
-                        row.latitude(), row.longitude()) <= MERGE_RADIUS_METERS)
-                .toList();
-
-        return candidates.size() == 1 ? Optional.of(candidates.get(0).getPlaceId()) : Optional.empty();
+        return placeMatcher.findUniqueMatch(placeRepository.findAllBySigunguCode(row.regionCode()),
+                        row.name(), row.address(), row.latitude(), row.longitude())
+                .map(Place::getPlaceId);
     }
 
     private Place createNewPlace(TourApiPlaceImportRow row, PlaceCategory category) {
@@ -91,22 +80,5 @@ public class TourApiPlaceImportService {
 
     private PlaceExternalIdMapping toMapping(TourApiPlaceImportRow row, Long placeId) {
         return new PlaceExternalIdMapping(PlaceExternalIdProvider.KTO_TOUR_API, row.externalPlaceId(), placeId);
-    }
-
-    private String normalize(String value) {
-        return value == null ? "" : value.trim().replaceAll("\\s+", "");
-    }
-
-    /** Haversine — 두 좌표 간 거리(m). */
-    private double distanceMeters(BigDecimal lat1, BigDecimal lng1, BigDecimal lat2, BigDecimal lng2) {
-        double phi1 = Math.toRadians(lat1.doubleValue());
-        double phi2 = Math.toRadians(lat2.doubleValue());
-        double deltaPhi = Math.toRadians(lat2.subtract(lat1).doubleValue());
-        double deltaLambda = Math.toRadians(lng2.subtract(lng1).doubleValue());
-
-        double a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2)
-                + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return EARTH_RADIUS_METERS * c;
     }
 }

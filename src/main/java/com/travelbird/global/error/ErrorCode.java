@@ -118,6 +118,9 @@ public enum ErrorCode {
     // 커뮤니티 (Part3, Phase4)
     SEARCH_QUERY_TOO_LONG(HttpStatus.BAD_REQUEST, "검색어는 최대 50자까지 입력할 수 있습니다."),
     SEARCH_QUERY_REQUIRED(HttpStatus.BAD_REQUEST, "검색어를 입력해주세요."),
+    SEARCH_QUERY_TOO_SHORT(HttpStatus.BAD_REQUEST, "검색어는 2자 이상 입력해주세요."),
+    INVALID_PLACE_CATEGORY(HttpStatus.BAD_REQUEST, "유효하지 않은 장소 카테고리입니다."),
+    INVALID_COORDINATES(HttpStatus.BAD_REQUEST, "좌표가 올바르지 않습니다."),
     INVALID_SHARE_CHANNEL(HttpStatus.BAD_REQUEST, "유효하지 않은 공유 채널입니다."),
     REPORT_ALREADY_SUBMITTED(HttpStatus.CONFLICT, "이미 신고한 게시글입니다."),
 

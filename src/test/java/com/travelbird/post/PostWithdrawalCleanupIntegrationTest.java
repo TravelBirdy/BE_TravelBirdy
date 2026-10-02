@@ -25,6 +25,7 @@ import com.travelbird.savedroute.domain.SavedRoute;
 import com.travelbird.savedroute.domain.SavedRouteSourceType;
 import com.travelbird.savedroute.repository.SavedRouteRepository;
 import com.travelbird.trip.api.TripWithdrawalCleanup;
+import com.travelbird.user.domain.User;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -280,6 +281,27 @@ class PostWithdrawalCleanupIntegrationTest {
         assertThat(count("post_view_histories", "viewer_user_id = :p", THIRD_USER_ID)).isEqualTo(1);
         assertThat(postShareRepository.findById(mine.getId()).orElseThrow().getUserId()).isNull();
         assertThat(postShareRepository.findById(theirs.getId()).orElseThrow().getUserId()).isEqualTo(THIRD_USER_ID);
+    }
+
+    @Test
+    void 정리해도_호출자가_조회해둔_엔티티는_영속_상태를_유지한다() {
+        // WithdrawalService는 정리 호출 전에 User를 조회해 두고 마지막에 user.withdraw()로 상태를 바꾼다.
+        // 정리가 영속성 컨텍스트를 비우면 그 변경이 저장되지 않는다.
+        entityManager.flush();
+        entityManager.clear();
+        User user = entityManager.find(User.class, USER_ID);
+        createFullPost(USER_ID);
+        postShareRepository.saveAndFlush(PostShare.of(
+                createFullPost(OTHER_USER_ID).getPostId(), USER_ID, ShareChannel.KAKAO));
+
+        postWithdrawalCleanup.cleanupUserContent(USER_ID);
+        user.withdraw();
+        entityManager.flush();
+        entityManager.clear();
+
+        Object status = entityManager.createNativeQuery("select status from users where user_id = :id")
+                .setParameter("id", USER_ID).getSingleResult();
+        assertThat(status).isEqualTo("WITHDRAWN");
     }
 
     @Test

@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 import com.travelbird.file.client.S3FileStorage;
 import com.travelbird.file.domain.FileAsset;
 import com.travelbird.file.domain.FilePurpose;
+import com.travelbird.post.api.PostWithdrawalCleanup;
+import com.travelbird.trip.api.TripWithdrawalCleanup;
 import com.travelbird.user.domain.RefreshToken;
 import com.travelbird.user.domain.User;
 import com.travelbird.user.domain.UserStatus;
@@ -29,9 +31,12 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import static org.mockito.Mockito.inOrder;
 
 @ExtendWith(MockitoExtension.class)
 class WithdrawalServiceTest {
@@ -50,6 +55,10 @@ class WithdrawalServiceTest {
     private FileAssetRepository fileAssetRepository;
     @Mock
     private S3FileStorage s3FileStorage;
+    @Mock
+    private PostWithdrawalCleanup postWithdrawalCleanup;
+    @Mock
+    private TripWithdrawalCleanup tripWithdrawalCleanup;
 
     private WithdrawalService withdrawalService;
 
@@ -57,7 +66,8 @@ class WithdrawalServiceTest {
     void setUp() {
         withdrawalService = new WithdrawalService(
                 userRepository, refreshTokenRepository, userSocialAccountRepository,
-                followRepository, userBlockRepository, fileAssetRepository, s3FileStorage);
+                followRepository, userBlockRepository, fileAssetRepository, s3FileStorage,
+                postWithdrawalCleanup, tripWithdrawalCleanup);
     }
 
     @Test
@@ -79,6 +89,8 @@ class WithdrawalServiceTest {
                 .extracting(e -> ((BusinessException) e).getErrorCode())
                 .isEqualTo(ErrorCode.USER_NOT_ACTIVE);
 
+        verify(postWithdrawalCleanup, never()).cleanupUserContent(any());
+        verify(tripWithdrawalCleanup, never()).cleanupUserTrips(any());
         verify(fileAssetRepository, never()).findAllByUserId(any());
     }
 
@@ -89,6 +101,8 @@ class WithdrawalServiceTest {
         withdrawalService.withdraw(1L);
 
         verify(refreshTokenRepository, never()).findById(any());
+        verify(postWithdrawalCleanup, never()).cleanupUserContent(any());
+        verify(tripWithdrawalCleanup, never()).cleanupUserTrips(any());
         verify(fileAssetRepository, never()).findAllByUserId(any());
         verify(followRepository, never()).deleteAllInvolvingUser(any());
         verify(userBlockRepository, never()).deleteAllInvolvingUser(any());
@@ -107,11 +121,18 @@ class WithdrawalServiceTest {
         withdrawalService.withdraw(1L);
 
         assertThat(token.getRevokedAt()).isNotNull();
+        verify(postWithdrawalCleanup).cleanupUserContent(1L);
+        verify(tripWithdrawalCleanup).cleanupUserTrips(1L);
         verify(s3FileStorage).delete("uploads/trip_place/1/10.webp");
         verify(fileAssetRepository).deleteAll(List.of(file));
         verify(followRepository).deleteAllInvolvingUser(1L);
         verify(userBlockRepository).deleteAllInvolvingUser(1L);
         verify(userSocialAccountRepository).deleteAllByUserId(1L);
+
+        InOrder order = inOrder(postWithdrawalCleanup, tripWithdrawalCleanup, fileAssetRepository);
+        order.verify(postWithdrawalCleanup).cleanupUserContent(1L);
+        order.verify(tripWithdrawalCleanup).cleanupUserTrips(1L);
+        order.verify(fileAssetRepository).findAllByUserId(1L);
 
         assertThat(user.getStatus()).isEqualTo(UserStatus.WITHDRAWN);
         assertThat(user.getEmail()).isNull();
