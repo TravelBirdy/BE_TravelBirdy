@@ -2,6 +2,8 @@ package com.travelbird.user.service;
 
 import com.travelbird.file.client.S3FileStorage;
 import com.travelbird.file.domain.FileAsset;
+import com.travelbird.post.api.PostWithdrawalCleanup;
+import com.travelbird.trip.api.TripWithdrawalCleanup;
 import com.travelbird.user.domain.User;
 import com.travelbird.user.domain.UserStatus;
 import com.travelbird.global.error.BusinessException;
@@ -20,8 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 회원탈퇴 Orchestrator (공통협의 섹션7 파트간 실행순서).
- * 2단계(Part3 Post)·3단계(Part2 Trip/AI) 콘텐츠 정리는 해당 파트 계약이 이 저장소에
- * merge된 뒤 연동한다 — 아직은 Part1이 소유한 4단계 정리만 수행한다.
+ * 2단계(Part3 {@link PostWithdrawalCleanup})·3단계(Part2 {@link TripWithdrawalCleanup})는
+ * {@code posts.trip_id -> trips.trip_id}가 RESTRICT이므로 반드시 이 순서로 호출한다.
  */
 @Service
 @Transactional
@@ -36,6 +38,8 @@ public class WithdrawalService {
     private final UserBlockRepository userBlockRepository;
     private final FileAssetRepository fileAssetRepository;
     private final S3FileStorage s3FileStorage;
+    private final PostWithdrawalCleanup postWithdrawalCleanup;
+    private final TripWithdrawalCleanup tripWithdrawalCleanup;
 
     public WithdrawalService(
             UserRepository userRepository,
@@ -44,7 +48,9 @@ public class WithdrawalService {
             FollowRepository followRepository,
             UserBlockRepository userBlockRepository,
             FileAssetRepository fileAssetRepository,
-            S3FileStorage s3FileStorage
+            S3FileStorage s3FileStorage,
+            PostWithdrawalCleanup postWithdrawalCleanup,
+            TripWithdrawalCleanup tripWithdrawalCleanup
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
@@ -53,6 +59,8 @@ public class WithdrawalService {
         this.userBlockRepository = userBlockRepository;
         this.fileAssetRepository = fileAssetRepository;
         this.s3FileStorage = s3FileStorage;
+        this.postWithdrawalCleanup = postWithdrawalCleanup;
+        this.tripWithdrawalCleanup = tripWithdrawalCleanup;
     }
 
     public void withdraw(Long userId) {
@@ -69,8 +77,12 @@ public class WithdrawalService {
         // 1단계 — Part1 인증 차단 준비: 활성 Refresh Token 폐기
         refreshTokenRepository.findById(userId).ifPresent(token -> token.revoke());
 
-        // 2단계(Part3 PostWithdrawalCleanup), 3단계(Part2 TripWithdrawalCleanup)는
-        // 해당 파트 구현이 merge되면 이 사이에서 호출한다.
+        // 2단계 — Part3 콘텐츠 정리(먼저): posts.trip_id -> trips.trip_id가 RESTRICT이므로
+        // 3단계 Trip 삭제보다 반드시 앞서 실행한다.
+        postWithdrawalCleanup.cleanupUserContent(userId);
+
+        // 3단계 — Part2 여행/AI 정리: Post 참조가 이미 정리된 상태에서 실행한다.
+        tripWithdrawalCleanup.cleanupUserTrips(userId);
 
         // 4단계 — Part1 파일/소셜/계정 정리
         deleteOwnedFilesAndS3Objects(userId);
