@@ -18,6 +18,7 @@ import com.travelbird.post.repository.PostRepository;
 import com.travelbird.trip.api.TripPostReader;
 import com.travelbird.user.api.UserReader;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +63,7 @@ public class PostUpdateService {
     private final PostTripPlaceResolver tripPlaceResolver;
     private final PostDetailService postDetailService;
     private final UserReader userReader;
+    private final ApplicationEventPublisher eventPublisher;
 
     public Optional<PostDetailResponse> update(Long userId, Long postId, UpdatePostRequest request) {
         userReader.validateActiveUser(userId);
@@ -137,6 +139,9 @@ public class PostUpdateService {
             contentValidator.validateRequiredForPublish(post.getTitle(), post.getContent(), true);
         }
 
+        // 이미지·장소·해시태그처럼 자식 테이블만 바뀐 요청도 Post 행을 dirty로 만들어 @Version을
+        // 올리고 동시성 충돌을 검사한다(리뷰 반영).
+        post.touch();
         postRepository.saveAndFlush(post);
 
         return Optional.of(postDetailService.getDetail(postId, userId));
@@ -167,7 +172,7 @@ public class PostUpdateService {
             fileLinkService.markLinked(addedFileIds);
         }
         if (!removedFileIds.isEmpty()) {
-            fileLinkService.deleteOwnedFiles(userId, removedFileIds);
+            eventPublisher.publishEvent(new PostImagesRemovedEvent(userId, removedFileIds));
         }
     }
 

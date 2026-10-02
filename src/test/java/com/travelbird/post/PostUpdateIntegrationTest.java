@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -287,7 +289,7 @@ class PostUpdateIntegrationTest {
     }
 
     @Test
-    void imageFileIds_교체시_추가분은_링크되고_제거분은_S3에서_삭제된다() throws Exception {
+    void imageFileIds_교체시_추가분은_링크되고_제거분은_연결에서_빠진다() throws Exception {
         Long tripId = createTripFixture(USER_ID);
         Long oldFileId = createFileFixture(USER_ID, "UPLOADED");
         CreatedPost created = createPost(USER_ID, tripId, false);
@@ -308,7 +310,39 @@ class PostUpdateIntegrationTest {
         List<Long> remaining = postImageRepository.findByIdPostIdOrderByDisplayOrderAsc(created.postId()).stream()
                 .map(image -> image.getId().getFileId()).toList();
         assertThat(remaining).containsExactly(newFileId);
-        verify(s3FileStorage).delete(org.mockito.ArgumentMatchers.argThat(key -> key != null));
+        entityManager.flush();
+        entityManager.clear();
+        String newFileStatus = (String) entityManager
+                .createNativeQuery("select status from files where file_id = :id")
+                .setParameter("id", newFileId).getSingleResult();
+        assertThat(newFileStatus).isEqualTo("LINKED");
+        // 파일(S3·DB) 삭제는 커밋 후 리스너가 하므로 커밋되지 않는 이 테스트에서는 호출되지 않는다 —
+        // 실제 커밋 후 삭제는 PostUpdateImageCleanupIntegrationTest에서 확인한다.
+        verify(s3FileStorage, never()).delete(anyString());
+    }
+
+    @Test
+    void 이미지를_교체하는_수정이_검증에_실패해도_S3_이미지는_삭제되지_않는다() throws Exception {
+        Long tripId = createTripFixture(USER_ID);
+        Long oldFileId = createFileFixture(USER_ID, "UPLOADED");
+        CreatedPost created = createPost(USER_ID, tripId, false);
+        String attachBody = "{\"imageFileIds\":[" + oldFileId + "],\"version\":" + created.version() + "}";
+        String response = mockMvc.perform(patch("/api/posts/{postId}", created.postId())
+                        .contentType(MediaType.APPLICATION_JSON).content(attachBody))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        Long versionAfterAttach = Long.valueOf(response.split("\"version\":")[1].replaceAll("[^0-9].*", ""));
+
+        Long newFileId = createFileFixture(USER_ID, "UPLOADED");
+        Long outsideFileId = createFileFixture(USER_ID, "UPLOADED");
+        String body = "{\"imageFileIds\":[" + newFileId + "],\"representativeFileId\":" + outsideFileId
+                + ",\"version\":" + versionAfterAttach + "}";
+
+        mockMvc.perform(patch("/api/posts/{postId}", created.postId())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
+
+        verify(s3FileStorage, never()).delete(anyString());
     }
 
     @Test
@@ -393,5 +427,68 @@ class PostUpdateIntegrationTest {
         mockMvc.perform(patch("/api/posts/{postId}", created.postId())
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isNoContent());
+    }
+
+    private Long versionOf(String responseJson) {
+        return Long.valueOf(responseJson.split("\"version\":")[1].replaceAll("[^0-9].*", ""));
+    }
+
+    @Test
+    void 해시태그만_수정해도_version이_증가하고_이전_version은_충돌이다() throws Exception {
+        Long tripId = createTripFixture(USER_ID);
+        CreatedPost created = createPost(USER_ID, tripId, false);
+
+        String response = mockMvc.perform(patch("/api/posts/{postId}", created.postId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"hashtags\":[\"바다\"],\"version\":" + created.version() + "}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(versionOf(response)).isEqualTo(created.version() + 1);
+
+        mockMvc.perform(patch("/api/posts/{postId}", created.postId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"hashtags\":[\"여름\"],\"version\":" + created.version() + "}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("POST_MODIFICATION_CONFLICT"));
+    }
+
+    @Test
+    void 장소만_수정해도_version이_증가하고_이전_version은_충돌이다() throws Exception {
+        Long tripId = createTripFixture(USER_ID);
+        Long placeId = createTripWithPlace(tripId);
+        CreatedPost created = createPost(USER_ID, tripId, false);
+
+        String response = mockMvc.perform(patch("/api/posts/{postId}", created.postId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"placeIds\":[" + placeId + "],\"version\":" + created.version() + "}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(versionOf(response)).isEqualTo(created.version() + 1);
+
+        mockMvc.perform(patch("/api/posts/{postId}", created.postId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"placeIds\":[],\"version\":" + created.version() + "}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("POST_MODIFICATION_CONFLICT"));
+    }
+
+    @Test
+    void 이미지만_수정해도_version이_증가하고_이전_version은_충돌이다() throws Exception {
+        Long tripId = createTripFixture(USER_ID);
+        Long fileId = createFileFixture(USER_ID, "UPLOADED");
+        CreatedPost created = createPost(USER_ID, tripId, false);
+
+        String response = mockMvc.perform(patch("/api/posts/{postId}", created.postId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"imageFileIds\":[" + fileId + "],\"version\":" + created.version() + "}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(versionOf(response)).isEqualTo(created.version() + 1);
+
+        mockMvc.perform(patch("/api/posts/{postId}", created.postId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"imageFileIds\":[],\"version\":" + created.version() + "}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("POST_MODIFICATION_CONFLICT"));
     }
 }
